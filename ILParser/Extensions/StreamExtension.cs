@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Numerics;
+using System.Text;
 
 namespace ILParser.Extensions
 {
@@ -15,67 +16,91 @@ namespace ILParser.Extensions
                     : throw new EndOfStreamException();
             }
 
+            public byte[] ReadBytesAligned(int count, int alignment)
+            {
+                var alignmentOffset = alignment - (int)(stream.Position % alignment);
+                if (alignment > 1 && alignmentOffset != alignment)
+                {
+                    var alignmentBytes = stream.ReadBytes(alignmentOffset);
+                }
+                return stream.ReadBytes(count);
+            }
+
             public string ReadBytesAsHexString(int count)
             {
                 return BitConverter.ToString(stream.ReadBytes(count));
             }
 
+            public string ReadBytesAsString(int count)
+            {
+                return Encoding.UTF8.GetString(stream.ReadBytes(count));
+            }
+            
             public byte ReadByteB()
             {
                 return (byte)stream.ReadByte();
             }
 
-            // public ushort ReadUInt16()
+            // public ushort ReadUInt16(ELFEnums.ELFDataEncoding encoding)
             // {
-            //     return BinaryPrimitives.ReadUInt16BigEndian(stream.ReadBytes(2));
+            //     var bytes = stream.ReadBytesAligned(2, 2);
+            //     return encoding == ELFEnums.ELFDataEncoding.LITTLE_ENDIAN
+            //         ? BinaryPrimitives.ReadUInt16LittleEndian(bytes)
+            //         : BinaryPrimitives.ReadUInt16BigEndian(bytes);
             // }
-            //
-            // public short ReadInt16()
+            
+            // public short ReadInt16(ELFEnums.ELFDataEncoding encoding)
             // {
-            //     return BinaryPrimitives.ReadInt16BigEndian(stream.ReadBytes(2));
+            //     return BinaryPrimitives.ReadInt16LittleEndian(stream.ReadBytes(2));
             // }
-            //
-            // public uint ReadUInt32()
+            
+            // public uint ReadUInt32(ELFEnums.ELFDataEncoding encoding)
             // {
-            //     return BinaryPrimitives.ReadUInt32BigEndian(stream.ReadBytes(4));
+            //     var bytes = stream.ReadBytesAligned(4, 4);
+            //     return encoding == ELFEnums.ELFDataEncoding.LITTLE_ENDIAN
+            //         ? BinaryPrimitives.ReadUInt32LittleEndian(bytes)
+            //         : BinaryPrimitives.ReadUInt32BigEndian(bytes);
             // }
-            //
-            // public int ReadInt32()
+            
+            // public int ReadInt32(ELFEnums.ELFDataEncoding encoding)
             // {
-            //     return BinaryPrimitives.ReadInt32BigEndian(stream.ReadBytes(4));
+            //     var bytes = stream.ReadBytesAligned(4, 4);
+            //     return encoding == ELFEnums.ELFDataEncoding.LITTLE_ENDIAN
+            //         ? BinaryPrimitives.ReadInt32LittleEndian(bytes)
+            //         : BinaryPrimitives.ReadInt32BigEndian(bytes);
             // }
-            //
+            
             // public float ReadFloat()
             // {
-            //     return BinaryPrimitives.ReadSingleBigEndian(stream.ReadBytes(4));
+            //     return BinaryPrimitives.ReadSingleLittleEndian(stream.ReadBytes(4));
             // }
             //
             // public ulong ReadUInt64()
             // {
-            //     return BinaryPrimitives.ReadUInt64BigEndian(stream.ReadBytes(8));
+            //     return BinaryPrimitives.ReadUInt64LittleEndian(stream.ReadBytes(8));
             // }
             //
             // public long ReadInt64()
             // {
-            //     return BinaryPrimitives.ReadInt32BigEndian(stream.ReadBytes(8));
+            //     return BinaryPrimitives.ReadInt32LittleEndian(stream.ReadBytes(8));
             // }
             //
             // public double ReadDouble()
             // {
-            //     return BinaryPrimitives.ReadDoubleBigEndian(stream.ReadBytes(8));
+            //     return BinaryPrimitives.ReadDoubleLittleEndian(stream.ReadBytes(8));
             // }
 
-            public T[] ParseArray<T, TN>(TN count, Func<Stream, T> itemProcessor)
-                where TN : INumber<TN>
-            {
-                var list = new List<T>();
-                for (var x = TN.Zero; x < count; x++)
-                {
-                    var item = itemProcessor(stream);
-                    list.Add(item);
-                }
-                return list.ToArray();
-            }
+            // public T[] ParseArray<T, TN>(TN count, Func<Stream, T> itemProcessor)
+            //     where TN : INumber<TN>
+            // {
+            //     var list = new List<T>();
+            //     for (var x = TN.Zero; x < count; x++)
+            //     {
+            //         var item = itemProcessor(stream);
+            //         list.Add(item);
+            //     }
+            //     return list.ToArray();
+            // }
 
             // public T[] ParseArray<T>(Func<Stream, T> itemProcessor)
             // {

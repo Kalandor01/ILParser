@@ -1,6 +1,10 @@
-namespace ILParser;
-
-public class Constants
+namespace ILParser
 {
-    public const string ELF_MAGIC_STRING = "7F_ELF";
+    public class Constants
+    {
+        public class ELF
+        {
+            public const string ELF_MAGIC_STRING = "7F_ELF";
+        }
+    }
 }
