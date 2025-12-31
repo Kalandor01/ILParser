@@ -2,7 +2,7 @@ using System.Buffers.Binary;
 using System.Numerics;
 using System.Text;
 
-namespace ILParser.Extensions
+namespace ELFParser.Extensions
 {
     public static class StreamExtension
     {

@@ -1,8 +1,8 @@
 using System.Buffers.Binary;
 using System.Numerics;
-using ILParser.Extensions;
+using ELFParser.Extensions;
 
-namespace ILParser
+namespace ELFParser
 {
     public class ELFStream : Stream
     {

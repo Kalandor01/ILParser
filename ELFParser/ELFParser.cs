@@ -1,6 +1,6 @@
-using ILParser.Extensions;
+using ELFParser.Extensions;
 
-namespace ILParser
+namespace ELFParser
 {
     public static class ELFParser
     {

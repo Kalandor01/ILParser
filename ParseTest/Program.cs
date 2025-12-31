@@ -1,14 +1,14 @@
-﻿namespace ILParser
+﻿namespace ParseTest
 {
-    internal class Program
+    class Program
     {
-        public static void Main(string[] args)
+        static void Main(string[] args)
         {
             var testFilesFolderPath = Path.GetFullPath("../../../../TestCreator/bin/Debug/net10.0");
             var testFileName = "TestCreator";
             var testFilePath = Path.Join(testFilesFolderPath, testFileName);
             
-            var elfFile = ELFParser.Parse(testFilePath);
+            var elfFile = ELFParser.ELFParser.Parse(testFilePath);
         }
     }
 }

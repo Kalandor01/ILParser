@@ -1,4 +1,4 @@
-namespace ILParser
+namespace ELFParser
 {
     public static class ELFEnums
     {
