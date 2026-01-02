@@ -259,21 +259,16 @@ namespace ELFParser
             /// </summary>
             TLS = 0x00000007,
             /// <summary>
-            /// Reserved inclusive range start. Operating system specific.
+            /// Value to indicate an operating system specific type.
             /// </summary>
-            LOW_OS = 0x60000000,
+            OS_SPECIFIC = 0x68888888,
+            GNU_EH_FRAME = 0x6474E550,
+            GNU_STACK = 0x6474E551,
+            GNU_RELRO = 0x6474E552,
             /// <summary>
-            /// Reserved inclusive range end. Operating system specific.
+            /// Value to indicate a processor system specific type.
             /// </summary>
-            HI_OS = 0x6FFFFFFF,
-            /// <summary>
-            /// Reserved inclusive range start. Processor specific.
-            /// </summary>
-            LOW_PROC = 0x70000000,
-            /// <summary>
-            /// Reserved inclusive range end. Processor specific.
-            /// </summary>
-            HI_PROC = 0x7FFFFFFF,
+            PROC_SPECIFIC = 0x78888888,
         }
         
         public enum ELFSectionHeaderType : uint
@@ -351,11 +346,15 @@ namespace ELFParser
             /// </summary>
             NUM = 0x13,
             /// <summary>
-            /// Start OS-specific.
+            /// Value to indicate an operating system specific type.
             /// </summary>
-            LOOS = 0x60000000,
+            OS_SPECIFIC = 0x70000000,
+            GNU_HASH = 0x6FFFFFF6,
+            GNU_VERNEED = 0x6FFFFFFE,
+            GNU_VERSION = 0x6FFFFFFF,
         }
         
+        [Flags]
         public enum ELFProgramHeaderFlag : uint
         {
             EXECUTABLE = 0x1,
@@ -363,6 +362,7 @@ namespace ELFParser
             READABLE = 0x4,
         }
         
+        [Flags]
         public enum ELFSectionHeaderFlag : ulong
         {
             /// <summary>

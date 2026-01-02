@@ -1,20 +1,7 @@
+using System.Text;
+
 namespace ELFParser
 {
-    public class ELFIdentity
-    {
-        public string Magic;
-        public ELFEnums.ELFClassType ClassType;
-        public ELFEnums.ELFDataEncoding DataEncoding;
-        public ELFEnums.ELFVersion HeaderVersion;
-        public ELFEnums.ELFAbi OsAbi;
-        public byte AbiVersion;
-
-        public override string ToString()
-        {
-            return $"{OsAbi} ({AbiVersion}), x{(ClassType == ELFEnums.ELFClassType.BIT_64 ? "64" : "32")}, {(DataEncoding == ELFEnums.ELFDataEncoding.BID_ENDIAN ? "Big" : "Little")} endian";
-        }
-    }
-
     public class ELFHeaderRaw
     {
         public ELFIdentity Identity;
@@ -63,34 +50,10 @@ namespace ELFParser
         public ushort SectionNameStringSectionHeaderTableIndex;
     }
 
-    public class ELFHeader
+    public class ELFProgramHeaderRaw
     {
-        public ELFIdentity Identity;
-        public ELFEnums.ELFFileType FileType;
-        public ELFEnums.ELFArchitecture Architecture;
-        public uint FileVersion;
-        /// <summary>
-        /// The virtual address to which the system first transfers control. If the file has no associated entry point, this member holds zero.
-        /// </summary>
-        public ulong EntryPointAddress;
-        /// <summary>
-        /// The processor-specific flags associated with the file.
-        /// </summary>
-        public uint Flags;
-        /// <summary>
-        /// The section header table index of the entry associated with the section name string table. If the file has no section name string table, this member holds the value 0.
-        /// </summary>
-        public ushort SectionNameStringSectionHeaderTableIndex;
-
-        public override string ToString()
-        {
-            return $"{FileType}, {Architecture} ({FileVersion})";
-        }
-    }
-
-    public class ELFProgramHeader
-    {
-        public ELFEnums.ELFProgramHeaderType Type;
+        public ELFEnums.ELFProgramHeaderType Type => GetTypeFromTypeNum(TypeNum);
+        public uint TypeNum;
         public ELFEnums.ELFProgramHeaderFlag[] Flags;
         public ulong Offset;
         public ulong VirtualAddress;
@@ -98,6 +61,23 @@ namespace ELFParser
         public ulong FileSize;
         public ulong MemorySize;
         public ulong Alignment;
+        public byte[] Data;
+        
+        public static ELFEnums.ELFProgramHeaderType GetTypeFromTypeNum(uint typeInt)
+        {
+            return typeInt switch
+            {
+                >= Constants.ELF.PROGRAM_HEADER_TYPE_OS_SPECIFIC_LOW and <= Constants.ELF.PROGRAM_HEADER_TYPE_OS_SPECIFIC_HIGH =>
+                    Enum.IsDefined((ELFEnums.ELFProgramHeaderType)typeInt)
+                        ? (ELFEnums.ELFProgramHeaderType)typeInt
+                        : ELFEnums.ELFProgramHeaderType.OS_SPECIFIC,
+                >= Constants.ELF.PROGRAM_HEADER_TYPE_PROC_SPECIFIC_LOW and <= Constants.ELF.PROGRAM_HEADER_TYPE_PROC_SPECIFIC_HIGH =>
+                    Enum.IsDefined((ELFEnums.ELFProgramHeaderType)typeInt)
+                        ? (ELFEnums.ELFProgramHeaderType)typeInt
+                        : ELFEnums.ELFProgramHeaderType.PROC_SPECIFIC,
+                _ => (ELFEnums.ELFProgramHeaderType)typeInt,
+            };
+        }
 
         public override string? ToString()
         {
@@ -105,10 +85,11 @@ namespace ELFParser
         }
     }
 
-    public class ELFSectionHeader
+    public class ELFSectionHeaderRaw
     {
         public uint Name;
-        public ELFEnums.ELFSectionHeaderType Type;
+        public ELFEnums.ELFSectionHeaderType Type => GetTypeFromTypeNum(TypeNum);
+        public uint TypeNum;
         public ELFEnums.ELFSectionHeaderFlag[] Flags;
         public ulong VirtualAddress;
         public ulong Offset;
@@ -117,6 +98,19 @@ namespace ELFParser
         public uint Info;
         public ulong AddressAlign;
         public ulong EntrySize;
+        public byte[] Data;
+        
+        public static ELFEnums.ELFSectionHeaderType GetTypeFromTypeNum(uint typeInt)
+        {
+            return typeInt switch
+            {
+                >= Constants.ELF.SECTION_HEADER_TYPE_OS_SPECIFIC_LOW =>
+                    Enum.IsDefined((ELFEnums.ELFSectionHeaderType)typeInt)
+                        ? (ELFEnums.ELFSectionHeaderType)typeInt
+                        : ELFEnums.ELFSectionHeaderType.OS_SPECIFIC,
+                _ => (ELFEnums.ELFSectionHeaderType)typeInt,
+            };
+        }
 
         public override string? ToString()
         {
@@ -124,15 +118,36 @@ namespace ELFParser
         }
     }
 
-    public class ELFFile
+    public class ELFFileRaw
     {
-        public ELFHeader Header;
-        public ELFProgramHeader[] ProgramHeaderTable;
-        public ELFSectionHeader[] SectionHeaderTable;
+        public ELFHeaderRaw Header;
+        public ELFProgramHeaderRaw[] ProgramHeaderTable;
+        public ELFSectionHeaderRaw[] SectionHeaderTable;
+
+        public string? ResolveStringByIndex(uint stringStartIndex)
+        {
+            return GetNullTerminatedString(SectionHeaderTable[Header.SectionNameStringSectionHeaderTableIndex].Data, stringStartIndex);
+        }
 
         public override string? ToString()
         {
             return Header.ToString();
+        }
+
+        private static string? GetNullTerminatedString(byte[] bytes, uint startIndex)
+        {
+            var strBytes = new List<byte>();
+
+            var b = bytes[startIndex];
+            while (b != 0)
+            {
+                strBytes.Add(b);
+                startIndex++;
+                b = bytes[startIndex];
+            }
+            return strBytes.Count != 0
+                ? Encoding.UTF8.GetString(strBytes.ToArray())
+                : null;
         }
     }
 }

@@ -15,6 +15,48 @@ namespace ELFParser.Extensions
                     ? bytes
                     : throw new EndOfStreamException();
             }
+            
+            public byte[] ReadBytes(ulong count)
+            {
+                if (count <= int.MaxValue)
+                {
+                    return stream.ReadBytes((int)count);
+                }
+
+                var tempArrays = new List<byte[]>();
+                do
+                {
+                    var toRead = count > int.MaxValue ? int.MaxValue : (int)count;
+                    
+                    var tempArray = new byte[toRead];
+                    if (stream.Read(tempArray) < toRead)
+                    {
+                        throw new EndOfStreamException();
+                    }
+                    
+                    tempArrays.Add(tempArray);
+                    count -= (ulong)toRead;
+                } while (count > 0);
+                return tempArrays.SelectMany(a => a).ToArray();
+            }
+            
+            public byte[] ReadBytes(int count, long position)
+            {
+                var oldPos = stream.Position;
+                stream.Position = position;
+                var res = stream.ReadBytes(count);
+                stream.Position = oldPos;
+                return res;
+            }
+            
+            public byte[] ReadBytes(ulong count, long position)
+            {
+                var oldPos = stream.Position;
+                stream.Position = position;
+                var res = stream.ReadBytes(count);
+                stream.Position = oldPos;
+                return res;
+            }
 
             public byte[] ReadBytesAligned(int count, int alignment)
             {
