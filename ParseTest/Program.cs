@@ -1,4 +1,6 @@
-﻿namespace ParseTest
+﻿using ELFParser;
+
+namespace ParseTest
 {
     class Program
     {
@@ -10,6 +12,7 @@
             
             var rawElfFile = ELFParser.ELFParser.Parse(testFilePath);
             var elfFile = ELFParser.ELFParser.Resolve(rawElfFile);
+            ELFInterpreter.RumFromEntrypoint(elfFile);
         }
     }
 }

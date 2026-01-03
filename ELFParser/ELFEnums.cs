@@ -376,7 +376,7 @@ namespace ELFParser
             /// <summary>
             /// Executable.
             /// </summary>
-            EXECINSTR = 0x4,
+            EXECUTABLE = 0x4,
             /// <summary>
             /// Might be merged.
             /// </summary>
@@ -408,11 +408,11 @@ namespace ELFParser
             /// <summary>
             /// OS-specific.
             /// </summary>
-            MASKOS = 0x0FF00000,
+            MASK_OS = 0x0FF00000,
             /// <summary>
             /// Processor-specific.
             /// </summary>
-            MASKPROC = 0xF0000000,
+            MASK_PROC = 0xF0000000,
             /// <summary>
             /// Special ordering requirement (Solaris).
             /// </summary>
@@ -421,6 +421,67 @@ namespace ELFParser
             /// Section is excluded unless referenced or allocated (Solaris).
             /// </summary>
             EXCLUDE = 0x8000000,
+        }
+        
+        public enum GnuAbiVersionNoteSectionOSType
+        {
+            Linux = 0,
+        }
+        
+        public enum X64Instruction : byte
+        {
+            /// <summary>
+            /// r += r<br/>
+            /// args: r
+            /// </summary>
+            ADD = 0x01,
+            /// <summary>
+            /// Extension of r/m field, base field, or opcode reg field.<br/>
+            /// args: inner_instruction<br/>
+            /// [PREFIX]
+            /// </summary>
+            REX_B = 0x41,
+            /// <summary>
+            /// 64 bit operand size.<br/>
+            /// args: inner_instruction<br/>
+            /// [PREFIX]
+            /// </summary>
+            OP_64 = 0x48,
+            /// <summary>
+            /// <see cref="OP_64"/> + <see cref="REX_B"/><br/>
+            /// args: inner_instruction<br/>
+            /// [PREFIX]
+            /// </summary>
+            REX_B64 = 0x49,
+            /// <summary>
+            /// Pop value from the stack to %rbx.
+            /// </summary>
+            POP_RBX = 0x5B,
+            /// <summary>
+            /// Pop value from the stack to %rbp.
+            /// </summary>
+            POP_RBP = 0x5D,
+            /// <summary>
+            /// op r i<br/>
+            /// args: group_value, r, i<br/>
+            /// [GROUP](0-7): add, or, add_with_cary, subtract_with_borrow, and, subtract, xor, compare
+            /// </summary>
+            GROUP_83 = 0x83,
+            NOP = 0x90,
+            RET = 0xC3,
+            INT3 = 0xCC,
+        }
+
+        public enum ELFX64InstructionGroupValue : byte
+        {
+            ADD,
+            OR,
+            ADD_WITH_CARY,
+            SUBTRACT_WITH_BORROW_,
+            AND,
+            SUBTRACT,
+            XOR,
+            COMPARE,
         }
     }
 }

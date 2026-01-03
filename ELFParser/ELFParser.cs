@@ -21,19 +21,28 @@ namespace ELFParser
                 ProgramHeaderTable = elfStream.ParseArray(rawHeader.ProgramHeadersCount, (long)rawHeader.ProgramHeaderOffset, ParseProgramHeaderRaw),
                 SectionHeaderTable = elfStream.ParseArray(rawHeader.SectionHeadersCount, (long)rawHeader.SectionHeaderOffset, ParseSectionHeaderRaw),
             };
+            
+            elfFile.EntryProgramHeaderIndex = elfFile.Header.EntryPointAddress != 0
+                ? elfFile.ProgramHeaderTable.IndexOf(
+                    elfFile.ProgramHeaderTable.First(ph => ph.VirtualAddress == elfFile.Header.EntryPointAddress)
+                )
+                : -1;
+            
             return elfFile;
         }
         
         public static ELFFile Resolve(ELFFileRaw rawFile)
         {
+            var header = ParseHeader(rawFile.Header);
             var elfFile = new ELFFile
             {
-                Header = ParseHeader(rawFile.Header),
-                ProgramHeaders = rawFile.ProgramHeaderTable.Select(h => ParseProgramHeader(rawFile, h)).ToArray(),
-                SectionHeaders =  rawFile.SectionHeaderTable
-                    .Select(h => ParseSectionHeader(rawFile, h))
-                    .ToArray(),
+                Header = header,
+                ProgramHeaders = [.. rawFile.ProgramHeaderTable.Select(h => ParseProgramHeader(rawFile, h))],
+                SectionHeaders = [.. rawFile.SectionHeaderTable.Select(h => ParseSectionHeader(rawFile, header, h))],
             };
+            elfFile.EntryPointHeader = rawFile.EntryProgramHeaderIndex != -1
+                ? elfFile.ProgramHeaders[rawFile.EntryProgramHeaderIndex]
+                : null;
             
             ResolveSectionLinks(rawFile.SectionHeaderTable, elfFile.SectionHeaders);
             return elfFile;
@@ -158,30 +167,6 @@ namespace ELFParser
             return header;
         }
 
-        private static ELFProgramHeader ParseProgramHeader(ELFFileRaw rawFile, ELFProgramHeaderRaw rawHeader)
-        {
-            var header = new ELFProgramHeader
-            {
-                TypeNum = rawHeader.TypeNum,
-                Flags = rawHeader.Flags,
-                Data = rawHeader.Data,
-            };
-            return header;
-        }
-
-        private static ELFSectionHeader ParseSectionHeader(ELFFileRaw rawFile, ELFSectionHeaderRaw rawHeader)
-        {
-            var header = new ELFSectionHeader
-            {
-                Name = rawFile.ResolveStringByIndex(rawHeader.Name),
-                TypeNum = rawHeader.TypeNum,
-                Flags = rawHeader.Flags,
-                Info = rawHeader.Info,
-                Data = rawHeader.Data,
-            };
-            return header;
-        }
-
         private static void ResolveSectionLinks(ELFSectionHeaderRaw[] rawSections, ELFSectionHeader[] sections)
         {
             for (var x = 0; x < sections.Length; x++)
@@ -192,6 +177,220 @@ namespace ELFParser
                     : null;
             }
         }
+
+        private static ELFProgramHeader ParseProgramHeader(ELFFileRaw rawFile, ELFProgramHeaderRaw rawHeader)
+        {
+            var header = new ELFProgramHeader
+            {
+                TypeNum = rawHeader.TypeNum,
+                Flags = rawHeader.Flags,
+            };
+            header.Data = ParseProgramHeaderData(rawFile.Header.Identity, header, rawHeader.Data);
+            return header;
+        }
+
+        private static ELFSectionHeader ParseSectionHeader(ELFFileRaw rawFile, ELFHeader elfHeader, ELFSectionHeaderRaw rawHeader)
+        {
+            var header = new ELFSectionHeader
+            {
+                Name = rawFile.ResolveStringByIndex(rawHeader.Name),
+                TypeNum = rawHeader.TypeNum,
+                Flags = rawHeader.Flags,
+                Info = rawHeader.Info,
+            };
+            
+            header.Data = ParseSectionHeaderData(elfHeader, header, rawHeader.Data);
+            return header;
+        }
+
+        #region Program header data parsing
+        private static AELFNoteInfo ResolveNoteInfo(ELFIdentity identity, ELFStream noteStream)
+        {
+            var note = ParseNoteInfo(noteStream);
+            
+            var dataStream = identity.CreateElfStream(note.Descriptor);
+            return (note.Name, note.Type) switch
+            {
+                ("GNU", 1) => new ELFGnuAbiVersionNoteInfo(dataStream.ParseArray(4, s => s.ReadUInt32())),
+                ("GNU", 3) => new ELFGnuBuildIdNoteInfo(note.Descriptor),
+                _ => note,
+            };
+        }
+        
+        private static AELFNoteInfo ResolveNoteInfo(ELFIdentity identity, byte[] noteBytes)
+        {
+            return ResolveNoteInfo(identity, identity.CreateElfStream(noteBytes));
+        }
+        
+        private static ELFUnknownNoteInfo ParseNoteInfo(ELFStream stream)
+        {
+            var nameS = stream.ReadUInt32();
+            var descS = stream.ReadUInt32();
+            var type = stream.ReadUInt32();
+            
+            var note = new ELFUnknownNoteInfo
+            {
+                Name = stream.ReadBytesAndAlign((int)nameS, 4).ToUtf8String(),
+                Type = type,
+                Descriptor = stream.ReadBytes(descS),
+            };
+            return note;
+        }
+
+        private static AELFNoteInfo[] ParseNoteSection(ELFIdentity identity, byte[] bytes)
+        {
+            var stream = identity.CreateElfStream(bytes);
+            var nodes = new List<AELFNoteInfo>();
+            
+            while (stream.Length - stream.Position >= 3 * sizeof(uint))
+            {
+                nodes.Add(ResolveNoteInfo(identity, stream));
+            }
+            
+            return stream.ParsedOrThrow(nodes.ToArray());
+        }
+        #endregion
+
+        private static object? ParseProgramHeaderData(ELFIdentity identity, ELFProgramHeader header, byte[] data)
+        {
+            return header.Type switch
+            {
+                ELFEnums.ELFProgramHeaderType.NULL => null,
+                ELFEnums.ELFProgramHeaderType.LOAD => data,                     // TODO: unprocessed
+                ELFEnums.ELFProgramHeaderType.DYNAMIC => data,                  // TODO: unprocessed
+                ELFEnums.ELFProgramHeaderType.INTERP => data.ToUtf8String(),
+                ELFEnums.ELFProgramHeaderType.NOTE => ParseNoteSection(identity, data),
+                ELFEnums.ELFProgramHeaderType.SHLIB => data,
+                ELFEnums.ELFProgramHeaderType.PHDR => data,                     // TODO: unprocessed
+                ELFEnums.ELFProgramHeaderType.TLS => data,                      // TODO: unprocessed (empty?)
+                ELFEnums.ELFProgramHeaderType.GNU_EH_FRAME => data,             // TODO: unprocessed
+                ELFEnums.ELFProgramHeaderType.GNU_STACK => data,                // TODO: unprocessed (empty?)
+                ELFEnums.ELFProgramHeaderType.GNU_RELRO => data,                // TODO: unprocessed
+                ELFEnums.ELFProgramHeaderType.OS_SPECIFIC => data,
+                ELFEnums.ELFProgramHeaderType.PROC_SPECIFIC => data,
+                _ => throw new ArgumentOutOfRangeException(nameof(header.Type), header.Type, null),
+            };
+        }
+
+        private static object? ParseSectionHeaderData(ELFHeader elfHeader, ELFSectionHeader header, byte[] data)
+        {
+            return header.Name switch
+            {
+                null => null,
+                Constants.SectionName.INTERPRETER_INFO => data.ToUtf8String(),
+                Constants.SectionName.NOTE_ABI_TAG => (ELFGnuAbiVersionNoteInfo)ResolveNoteInfo(elfHeader.Identity, data),
+                Constants.SectionName.NOTE_GNU_BUILD_ID => (ELFGnuBuildIdNoteInfo)ResolveNoteInfo(elfHeader.Identity, data),
+                // Constants.SectionName.DYNSYM => data,
+                // Constants.SectionName.GNU_VERSION => data,
+                // Constants.SectionName.GNU_VERSION_R => data,
+                // Constants.SectionName.GNU_HASH => data,
+                // Constants.SectionName.DYNSTR => data,
+                // Constants.SectionName.RELA_DYN => data,
+                // Constants.SectionName.RELA_PLT => data,
+                // Constants.SectionName.GCC_EXCEPT_TABLE => data,
+                // Constants.SectionName.EH_FRAME_HDR => data,
+                // Constants.SectionName.EH_FRAME => data,
+                Constants.SectionName.INIT => ParseAssemblyInstructions(elfHeader, data),
+                Constants.SectionName.FINI => ParseAssemblyInstructions(elfHeader, data),
+                // Constants.SectionName.PLT => data,
+                // Constants.SectionName.TBSS => data,
+                // Constants.SectionName.FINI_ARRAY => data,
+                // Constants.SectionName.INIT_ARRAY => data,
+                // Constants.SectionName.DATA_REL_RO => data,
+                // Constants.SectionName.GOT => data,
+                // Constants.SectionName.GOT_PLT => data,
+                // Constants.SectionName.RELRO_PADDING => data,
+                // Constants.SectionName.TM_CLONE_TABLE => data,
+                // Constants.SectionName.GNU_DEBUGLINK => data,
+                // Constants.SectionName.UNINITIALIZED_DATA => data,
+                // Constants.SectionName.VERSION_CONTROL_INFO => data,
+                // Constants.SectionName.DATA => data,
+                // Constants.SectionName.DATA1 => data,
+                // Constants.SectionName.DEBUG_INFO => data,
+                // Constants.SectionName.DYNAMIC_LINKING_INFO => data,
+                // Constants.SectionName.SYMBOL_HASH_TABLE => data,
+                // Constants.SectionName.LINE_NUMBER_INFO => data,
+                // Constants.SectionName.NOTE => data,
+                // Constants.SectionName.READ_ONLY_DATA => data,
+                // Constants.SectionName.READ_ONLY_DATA1 => data,
+                Constants.SectionName.SECTION_NAMES => data.ToUtf8String().Split((char)0).Where(s => s.Length != 0).ToArray(),
+                // Constants.SectionName.STRINGS => data,
+                // Constants.SectionName.SYMBOL_TABLE => data,
+                Constants.SectionName.INSTRUCTIONS => ParseAssemblyInstructions(elfHeader, data),
+                // _ => throw new ArgumentOutOfRangeException(nameof(header.Name), header.Name, null),
+                _ => data,
+            };
+        }
+
+        private static ELFEnums.ELFX64InstructionGroupValue ParseGroup(byte opcode, out byte value)
+        {
+            // TODO: how???
+            
+            var hexes = new byte[]
+            {
+                0xEC, // 11101100   => 0(add)   + %rsp ???
+                0xC0, // 11000000   => 0(add)   + %rax ???
+                0xC3, // 11000011   => 0(add)   + %rbx ???
+                0xC4, // 11000100   => 5(sub)   + %rsp ???
+            };
+
+            var vars = hexes
+                .Select(hex => ((string hex, string bin, byte? gValue, byte? reg)) (
+                    Convert.ToString(hex, 16),
+                    Convert.ToString(hex, 2),
+                    null,
+                    null
+                ))
+                .ToList();
+
+            value = opcode;
+            return (ELFEnums.ELFX64InstructionGroupValue)255;
+        }
+
+        private static X64AsmInstruction ParseX64LinuxAsmInstruction(MemoryStream stream, byte instructionOpcode)
+        {
+            var opcode = (ELFEnums.X64Instruction)instructionOpcode;
+            var inst = new X64AsmInstruction(opcode);
+
+            inst.Arguments = opcode switch
+            {
+                ELFEnums.X64Instruction.POP_RBX or ELFEnums.X64Instruction.POP_RBP or ELFEnums.X64Instruction.NOP or
+                    ELFEnums.X64Instruction.RET or ELFEnums.X64Instruction.INT3
+                    => [],
+                ELFEnums.X64Instruction.REX_B or ELFEnums.X64Instruction.OP_64 or ELFEnums.X64Instruction.REX_B64
+                    => [ParseX64LinuxAsmInstruction(stream, stream.ReadByteB())],
+                ELFEnums.X64Instruction.ADD => [stream.ReadByteB()],
+                ELFEnums.X64Instruction.GROUP_83 => [ParseGroup(stream.ReadByteB(), out var value), value, stream.ReadByteB()],
+                // _ => throw new ArgumentOutOfRangeException(nameof(opcode), opcode, null),
+                _ => [],
+            };
+            
+            return inst;
+        }
+
+        private static IAsmInstruction ParseAsmInstruction(ELFHeader header, MemoryStream stream, byte instructionOpcode)
+        {
+            return header.Architecture switch
+            {
+                ELFEnums.ELFArchitecture.X86 or ELFEnums.ELFArchitecture.AMD_X86_64 => ParseX64LinuxAsmInstruction(stream, instructionOpcode),
+                _ => throw new ArgumentOutOfRangeException(nameof(header.Architecture), header.Architecture, "Unsupported architecture!"),
+            };
+        }
+
+        private static IAsmInstruction[] ParseAssemblyInstructions(ELFHeader header, byte[] data)
+        {
+            var stream = new MemoryStream(data);
+
+            var instructions = new List<IAsmInstruction>();
+            while (stream.Length != stream.Position)
+            {
+                var instruction = stream.ReadByteB();
+                instructions.Add(ParseAsmInstruction(header, stream, instruction));
+            }
+
+            return stream.ParsedOrThrow(instructions.ToArray());
+        }
+
         #endregion
         #endregion
     }

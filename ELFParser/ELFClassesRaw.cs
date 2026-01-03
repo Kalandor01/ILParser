@@ -1,4 +1,4 @@
-using System.Text;
+using ELFParser.Extensions;
 
 namespace ELFParser
 {
@@ -67,11 +67,11 @@ namespace ELFParser
         {
             return typeInt switch
             {
-                >= Constants.ELF.PROGRAM_HEADER_TYPE_OS_SPECIFIC_LOW and <= Constants.ELF.PROGRAM_HEADER_TYPE_OS_SPECIFIC_HIGH =>
+                >= Constants.PROGRAM_HEADER_TYPE_OS_SPECIFIC_LOW and <= Constants.PROGRAM_HEADER_TYPE_OS_SPECIFIC_HIGH =>
                     Enum.IsDefined((ELFEnums.ELFProgramHeaderType)typeInt)
                         ? (ELFEnums.ELFProgramHeaderType)typeInt
                         : ELFEnums.ELFProgramHeaderType.OS_SPECIFIC,
-                >= Constants.ELF.PROGRAM_HEADER_TYPE_PROC_SPECIFIC_LOW and <= Constants.ELF.PROGRAM_HEADER_TYPE_PROC_SPECIFIC_HIGH =>
+                >= Constants.PROGRAM_HEADER_TYPE_PROC_SPECIFIC_LOW and <= Constants.PROGRAM_HEADER_TYPE_PROC_SPECIFIC_HIGH =>
                     Enum.IsDefined((ELFEnums.ELFProgramHeaderType)typeInt)
                         ? (ELFEnums.ELFProgramHeaderType)typeInt
                         : ELFEnums.ELFProgramHeaderType.PROC_SPECIFIC,
@@ -104,7 +104,7 @@ namespace ELFParser
         {
             return typeInt switch
             {
-                >= Constants.ELF.SECTION_HEADER_TYPE_OS_SPECIFIC_LOW =>
+                >= Constants.SECTION_HEADER_TYPE_OS_SPECIFIC_LOW =>
                     Enum.IsDefined((ELFEnums.ELFSectionHeaderType)typeInt)
                         ? (ELFEnums.ELFSectionHeaderType)typeInt
                         : ELFEnums.ELFSectionHeaderType.OS_SPECIFIC,
@@ -123,6 +123,7 @@ namespace ELFParser
         public ELFHeaderRaw Header;
         public ELFProgramHeaderRaw[] ProgramHeaderTable;
         public ELFSectionHeaderRaw[] SectionHeaderTable;
+        public int EntryProgramHeaderIndex;
 
         public string? ResolveStringByIndex(uint stringStartIndex)
         {
@@ -146,7 +147,7 @@ namespace ELFParser
                 b = bytes[startIndex];
             }
             return strBytes.Count != 0
-                ? Encoding.UTF8.GetString(strBytes.ToArray())
+                ? strBytes.ToArray().ToUtf8String()
                 : null;
         }
     }
