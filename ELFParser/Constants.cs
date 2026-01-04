@@ -8,6 +8,9 @@ namespace ELFParser
         public const uint PROGRAM_HEADER_TYPE_PROC_SPECIFIC_LOW = 0x70000000;
         public const uint PROGRAM_HEADER_TYPE_PROC_SPECIFIC_HIGH = 0x7FFFFFFF;
         public const uint SECTION_HEADER_TYPE_OS_SPECIFIC_LOW = 0x60000000;
+        public const byte X64_INSTRUCTION_GROUP_MARKER_MASK = 0b11_000000;
+        public const byte X64_GROUP_TYPE_MASK = 0b00_111_000;
+        public const byte X64_GROUP_VALUE_MASK = 0b00_000_111;
         
         public static class SectionName
         {

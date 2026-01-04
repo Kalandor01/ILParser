@@ -436,11 +436,16 @@ namespace ELFParser
             /// </summary>
             ADD = 0x01,
             /// <summary>
+            /// r = r xor r<br/>
+            /// args: r
+            /// </summary>
+            XOR = 0x31,
+            /// <summary>
             /// Extension of r/m field, base field, or opcode reg field.<br/>
             /// args: inner_instruction<br/>
             /// [PREFIX]
             /// </summary>
-            REX_B = 0x41,
+            EXTEND_OPCODES = 0x41,
             /// <summary>
             /// 64 bit operand size.<br/>
             /// args: inner_instruction<br/>
@@ -448,7 +453,7 @@ namespace ELFParser
             /// </summary>
             OP_64 = 0x48,
             /// <summary>
-            /// <see cref="OP_64"/> + <see cref="REX_B"/><br/>
+            /// <see cref="OP_64"/> + <see cref="EXTEND_OPCODES"/><br/>
             /// args: inner_instruction<br/>
             /// [PREFIX]
             /// </summary>
@@ -474,14 +479,26 @@ namespace ELFParser
 
         public enum ELFX64InstructionGroupValue : byte
         {
-            ADD,
-            OR,
-            ADD_WITH_CARY,
-            SUBTRACT_WITH_BORROW_,
-            AND,
-            SUBTRACT,
-            XOR,
-            COMPARE,
+            ADD = 0b00_000_000,
+            OR = 0b00_001_000,
+            ADD_WITH_CARY = 0b00_010_000,
+            SUBTRACT_WITH_BORROW = 0b00_011_000,
+            AND = 0b00_100_000,
+            SUBTRACT = 0b00_101_000,
+            XOR = 0b00_110_000,
+            COMPARE = 0b00_111_000,
+            NO_GROUP = 255,
+        }
+        
+        public enum ELFX64Register : byte
+        {
+            RAX = 0b00_000_000,
+            RCX = 0b00_000_001,
+            RDX = 0b00_000_010,
+            RBX = 0b00_000_011,
+            RSP = 0b00_000_100,
+            RSI = 0b00_000_110,
+            RDI = 0b00_000_111,
         }
     }
 }

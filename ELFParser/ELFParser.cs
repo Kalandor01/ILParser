@@ -322,33 +322,56 @@ namespace ELFParser
             };
         }
 
-        private static ELFEnums.ELFX64InstructionGroupValue ParseGroup(byte opcode, out byte value)
+        private static object ExtendOperandIfNeeded(byte operand, bool wideOperands, bool extendOperands)
         {
-            // TODO: how???
-            
-            var hexes = new byte[]
-            {
-                0xEC, // 11101100   => 0(add)   + %rsp ???
-                0xC0, // 11000000   => 0(add)   + %rax ???
-                0xC3, // 11000011   => 0(add)   + %rbx ???
-                0xC4, // 11000100   => 5(sub)   + %rsp ???
-            };
-
-            var vars = hexes
-                .Select(hex => ((string hex, string bin, byte? gValue, byte? reg)) (
-                    Convert.ToString(hex, 16),
-                    Convert.ToString(hex, 2),
-                    null,
-                    null
-                ))
-                .ToList();
-
-            value = opcode;
-            return (ELFEnums.ELFX64InstructionGroupValue)255;
+            return extendOperands
+                ? wideOperands
+                    ? operand.ExtendInt64()
+                    : operand.ExtendInt32()
+                : operand;
         }
 
-        private static X64AsmInstruction ParseX64LinuxAsmInstruction(MemoryStream stream, byte instructionOpcode)
+        private static ELFEnums.ELFX64InstructionGroupValue ParseGroup(byte opcode, out byte value)
         {
+            if ((opcode & Constants.X64_INSTRUCTION_GROUP_MARKER_MASK) == 0)
+            {
+                value = opcode;
+                return ELFEnums.ELFX64InstructionGroupValue.NO_GROUP;
+                throw new ArgumentException("Opcode is nor a group value!", nameof(opcode));
+            }
+
+            var maskedOpcode = opcode & Constants.X64_GROUP_TYPE_MASK;
+            
+            value = (byte)(opcode & Constants.X64_GROUP_VALUE_MASK);
+            return Enum.GetValues<ELFEnums.ELFX64InstructionGroupValue>()
+                .First(v => (byte)v == maskedOpcode);
+        }
+
+        private static object?[] ParseX64MaybeGroupArgs(
+            MemoryStream stream,
+            byte groupInstruction,
+            bool wideOperands = false,
+            bool extendOperands = false
+        )
+        {
+            var groupType = ParseGroup(groupInstruction, out var value);
+            if (groupType != ELFEnums.ELFX64InstructionGroupValue.NO_GROUP)
+            {
+                return [groupType, (ELFEnums.ELFX64Register)value, ExtendOperandIfNeeded(stream.ReadByteB(), wideOperands, extendOperands)];
+            }
+
+            return [ELFEnums.ELFX64InstructionGroupValue.NO_GROUP, ParseX64AsmInstruction(stream, value, wideOperands, extendOperands)];
+        }
+
+        private static X64AsmInstruction ParseX64AsmInstruction(
+            MemoryStream stream,
+            byte instructionOpcode,
+            bool wideOperands = false,
+            bool extendOperands = false
+        )
+        {
+            var s = "0x" + Convert.ToString(instructionOpcode, 16).ToUpper().PadLeft(2, '0');
+            
             var opcode = (ELFEnums.X64Instruction)instructionOpcode;
             var inst = new X64AsmInstruction(opcode);
 
@@ -357,10 +380,16 @@ namespace ELFParser
                 ELFEnums.X64Instruction.POP_RBX or ELFEnums.X64Instruction.POP_RBP or ELFEnums.X64Instruction.NOP or
                     ELFEnums.X64Instruction.RET or ELFEnums.X64Instruction.INT3
                     => [],
-                ELFEnums.X64Instruction.REX_B or ELFEnums.X64Instruction.OP_64 or ELFEnums.X64Instruction.REX_B64
-                    => [ParseX64LinuxAsmInstruction(stream, stream.ReadByteB())],
-                ELFEnums.X64Instruction.ADD => [stream.ReadByteB()],
-                ELFEnums.X64Instruction.GROUP_83 => [ParseGroup(stream.ReadByteB(), out var value), value, stream.ReadByteB()],
+                ELFEnums.X64Instruction.EXTEND_OPCODES
+                    => [ParseX64AsmInstruction(stream, stream.ReadByteB(),  wideOperands, true)],
+                ELFEnums.X64Instruction.OP_64
+                    => [ParseX64AsmInstruction(stream, stream.ReadByteB(), true, extendOperands)],
+                ELFEnums.X64Instruction.REX_B64
+                    => [ParseX64AsmInstruction(stream, stream.ReadByteB(), true, true)],
+                ELFEnums.X64Instruction.ADD or ELFEnums.X64Instruction.XOR
+                    => [stream.ReadByteB()],
+                ELFEnums.X64Instruction.GROUP_83
+                    => ParseX64MaybeGroupArgs(stream, stream.ReadByteB(), wideOperands, extendOperands),
                 // _ => throw new ArgumentOutOfRangeException(nameof(opcode), opcode, null),
                 _ => [],
             };
@@ -372,7 +401,7 @@ namespace ELFParser
         {
             return header.Architecture switch
             {
-                ELFEnums.ELFArchitecture.X86 or ELFEnums.ELFArchitecture.AMD_X86_64 => ParseX64LinuxAsmInstruction(stream, instructionOpcode),
+                ELFEnums.ELFArchitecture.X86 or ELFEnums.ELFArchitecture.AMD_X86_64 => ParseX64AsmInstruction(stream, instructionOpcode),
                 _ => throw new ArgumentOutOfRangeException(nameof(header.Architecture), header.Architecture, "Unsupported architecture!"),
             };
         }
