@@ -6,13 +6,23 @@ namespace ParseTest
     {
         static void Main(string[] args)
         {
-            var testFilesFolderPath = Path.GetFullPath("../../../../TestCreator/bin/Debug/net10.0");
-            const string testFileName = "TestCreator";
-            var testFilePath = Path.Join(testFilesFolderPath, testFileName);
+            var testProjectFolderPath = Path.GetFullPath("../../../../TestCreator/bin");
+            const string TEST_FILE_FOLDER_LINUX = "Debug/net10.0";
+            const string RELEASES_FOLDER = "Release/net10.0/";
+            const string TEST_FILE_FOLDER_LINUX_SINGLE = RELEASES_FOLDER + "linux-x64/publish";
+            const string TEST_FILE_FOLDER_WIN = RELEASES_FOLDER + "win-x64";
+            const string TEST_FILE_NAME = "TestCreator";
+            const string ELF_EXT = "";
+            const string EXE_EXT = ".exe";
+            const string DLL_EXT = ".dll";
             
-            var rawElfFile = ELFParser.ELFParser.Parse(testFilePath);
-            var elfFile = ELFParser.ELFParser.Resolve(rawElfFile);
-            ELFInterpreter.RumFromEntrypoint(elfFile);
+            // var testElfFilePath = Path.Join(testProjectFolderPath, TEST_FILE_FOLDER_LINUX_SINGLE, TEST_FILE_NAME + ELF_EXT);
+            // var rawElfFile = ELFParser.ELFParser.Parse(testElfFilePath);
+            // var elfFile = ELFParser.ELFParser.Resolve(rawElfFile);
+            // ELFInterpreter.RumFromEntrypoint(elfFile);
+            
+            var testPeFilePath = Path.Join(testProjectFolderPath, TEST_FILE_FOLDER_LINUX, TEST_FILE_NAME + EXE_EXT);
+            var peFile = PEParser.PEParser.Parse(testPeFilePath);
         }
     }
 }

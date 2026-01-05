@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestCreator", "TestCreator\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ParseTest", "ParseTest\ParseTest.csproj", "{B9FABAC0-AA32-4E4D-8C35-1E7ADF9F6DC2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PEParser", "PEParser\PEParser.csproj", "{494D520C-EC83-4452-A658-B0172422D40D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{B9FABAC0-AA32-4E4D-8C35-1E7ADF9F6DC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B9FABAC0-AA32-4E4D-8C35-1E7ADF9F6DC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B9FABAC0-AA32-4E4D-8C35-1E7ADF9F6DC2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{494D520C-EC83-4452-A658-B0172422D40D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{494D520C-EC83-4452-A658-B0172422D40D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{494D520C-EC83-4452-A658-B0172422D40D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{494D520C-EC83-4452-A658-B0172422D40D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

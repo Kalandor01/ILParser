@@ -492,13 +492,37 @@ namespace ELFParser
         
         public enum ELFX64Register : byte
         {
-            RAX = 0b00_000_000,
-            RCX = 0b00_000_001,
-            RDX = 0b00_000_010,
-            RBX = 0b00_000_011,
-            RSP = 0b00_000_100,
-            RSI = 0b00_000_110,
-            RDI = 0b00_000_111,
+            ACCUMULATOR = 0b00_000_000,             // RAX
+            COUNTER = 0b00_000_001,                 // RCX
+            EXTENDED_ACCUMULATOR = 0b00_000_010,    // RDX
+            BASE_INDEX = 0b00_000_011,              // RBX
+            STACK_POINTER = 0b00_000_100,           // RSP
+            STACK_BASE_POINTER = 0b00_000_101,      // RBP
+            SOURCE_INDEX = 0b00_000_110,            // RSI
+            DESTINATION_INDEX = 0b00_000_111,       // RDI
+            ADDITIONAL_REGISTER_8 = 8,              // R8
+            ADDITIONAL_REGISTER_9 = 9,              // R9
+            ADDITIONAL_REGISTER_10 = 10,            // R10
+            ADDITIONAL_REGISTER_11 = 11,            // R11
+            ADDITIONAL_REGISTER_12 = 12,            // R12
+            ADDITIONAL_REGISTER_13 = 13,            // R13
+            ADDITIONAL_REGISTER_14 = 14,            // R14
+            ADDITIONAL_REGISTER_15 = 15,            // R15
         }
+        
+        // 64 bit       32 bit          16 bit          8 bit MSB   8 bit LSB       Notes                                       Found
+        // RAX          EAX             AX              AH          AL              Accumulator                                 : F
+        // RBX          EBX             BX              BH          BL              Base index (arrays)                         : F
+        // RCX          ECX             CX              CH          CL              Counter (loops, strings)                    : F
+        // RDX          EDX             DX              DH          DL              Extend accumulator                          : F
+        // RSI          ESI             SI                          SIL             Source index (strings)                      : F
+        // RDI          EDI             DI                          DIL             Destination index (strings)                 : F
+        // RSP          ESP             SP                          SPL             Stack pointer (top of stack)                : F
+        // RBP          EBP             BP                          BPL             Stack base pointer (bottom of stack)        : F
+        // R8 to R15    R8D to R15D     R8W to R15W                 R8B to R15B     8 additional general purpose registers      : F?
+        // RIP          EIP             IP                                          Instruction pointer (program counter)       : 
+        // RFLAGS       EFLAGS          FLAGS                                       Flags register                              : 
+        
+        // 128 bit: XMM0 to XMM15 => 16 floating-point registers
     }
 }
