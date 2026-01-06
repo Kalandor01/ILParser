@@ -1,5 +1,4 @@
 using System.Buffers.Binary;
-using System.Numerics;
 using ParserCommon.Extensions;
 
 namespace ELFParser
@@ -81,28 +80,6 @@ namespace ELFParser
             return Is64Bit
                 ? ReadUInt64()
                 : ReadUInt32();
-        }
-        
-        public T[] ParseArray<T, TN>(TN count, Func<ELFStream, T> itemProcessor)
-            where TN : INumber<TN>
-        {
-            var list = new List<T>();
-            for (var x = TN.Zero; x < count; x++)
-            {
-                var item = itemProcessor(this);
-                list.Add(item);
-            }
-            return list.ToArray();
-        }
-        
-        public T[] ParseArray<T, TC>(TC count, long offset, Func<ELFStream, T> itemProcessor)
-            where TC : INumber<TC>
-        {
-            var oldPosition = Position;
-            Position = offset;
-            var res = ParseArray(count, itemProcessor);
-            Position = oldPosition;
-            return res;
         }
         #endregion
 

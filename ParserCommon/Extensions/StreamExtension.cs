@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace ParserCommon.Extensions
 {
     public static class StreamExtension
@@ -85,7 +87,7 @@ namespace ParserCommon.Extensions
 
             public string ReadBytesAsHexString(int count)
             {
-                return BitConverter.ToString(stream.ReadBytes(count));
+                return stream.ReadBytes(count).ToHexString();
             }
 
             public string ReadBytesAsString(int count)
@@ -96,6 +98,61 @@ namespace ParserCommon.Extensions
             public byte ReadByteB()
             {
                 return (byte)stream.ReadByte();
+            }
+
+            public ushort ReadUInt16L()
+            {
+                return stream.ReadBytes(2).AsUInt16L();
+            }
+
+            public ushort ReadUInt16B()
+            {
+                return stream.ReadBytes(2).AsUInt16B();
+            }
+
+            public uint ReadUInt32L()
+            {
+                return stream.ReadBytes(4).AsUInt32L();
+            }
+
+            public uint ReadUInt32B()
+            {
+                return stream.ReadBytes(4).AsUInt32B();
+            }
+
+            public ulong ReadUInt64L()
+            {
+                return stream.ReadBytes(8).AsUInt64L();
+            }
+
+            public ulong ReadUInt64B()
+            {
+                return stream.ReadBytes(8).AsUInt64B();
+            }
+        }
+        
+        extension<T, TS, TC>(TS stream)
+            where TS : Stream
+            where TC : INumber<TC>
+        {
+            public T[] ParseArray(TC count, Func<TS, T> itemProcessor)
+            {
+                var list = new List<T>();
+                for (var x = TC.Zero; x < count; x++)
+                {
+                    var item = itemProcessor(stream);
+                    list.Add(item);
+                }
+                return list.ToArray();
+            }
+            
+            public T[] ParseArray(TC count, long offset, Func<TS, T> itemProcessor)
+            {
+                var oldPosition = stream.Position;
+                stream.Position = offset;
+                var res = stream.ParseArray(count, itemProcessor);
+                stream.Position = oldPosition;
+                return res;
             }
         }
     }

@@ -1,6 +1,4 @@
-﻿using ELFParser;
-
-namespace ParseTest
+﻿namespace ParseTest
 {
     class Program
     {
@@ -23,6 +21,9 @@ namespace ParseTest
             
             var testPeFilePath = Path.Join(testProjectFolderPath, TEST_FILE_FOLDER_WIN, TEST_FILE_NAME + EXE_EXT);
             var peFile = PEParser.PEParser.Parse(testPeFilePath);
+            
+            var testPeFilePath2 = Path.Join(testProjectFolderPath, TEST_FILE_FOLDER_WIN, TEST_FILE_NAME + DLL_EXT);
+            var peFile2 = PEParser.PEParser.Parse(testPeFilePath2);
         }
     }
 }
