@@ -1,6 +1,6 @@
 using System.Buffers.Binary;
 using System.Numerics;
-using ELFParser.Extensions;
+using ParserCommon.Extensions;
 
 namespace ELFParser
 {

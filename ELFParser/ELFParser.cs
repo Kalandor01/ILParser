@@ -1,4 +1,4 @@
-using ELFParser.Extensions;
+using ParserCommon.Extensions;
 
 namespace ELFParser
 {

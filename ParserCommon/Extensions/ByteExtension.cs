@@ -1,4 +1,4 @@
-namespace ELFParser.Extensions
+namespace ParserCommon.Extensions
 {
     public static class ByteExtension
     {
