@@ -21,7 +21,7 @@ namespace ParseTest
             // var elfFile = ELFParser.ELFParser.Resolve(rawElfFile);
             // ELFInterpreter.RumFromEntrypoint(elfFile);
             
-            var testPeFilePath = Path.Join(testProjectFolderPath, TEST_FILE_FOLDER_LINUX, TEST_FILE_NAME + EXE_EXT);
+            var testPeFilePath = Path.Join(testProjectFolderPath, TEST_FILE_FOLDER_WIN, TEST_FILE_NAME + EXE_EXT);
             var peFile = PEParser.PEParser.Parse(testPeFilePath);
         }
     }
