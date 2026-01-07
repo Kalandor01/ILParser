@@ -11,5 +11,7 @@ namespace PEParser
         public const string DAN_MAGIC = "DanS";
         public const int RICH_HEADER_MIN_LENGTH = 32;
         public const int DAN_DATA_SIZE = 8;
+        public const string PE_MAGIC = "PE";
+        public const int DATA_DIRECTORY_SIZE = 8;
     }
 }

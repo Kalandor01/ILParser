@@ -1,4 +1,5 @@
-﻿using ParserCommon.Extensions;
+﻿using ParserCommon;
+using ParserCommon.Extensions;
 
 namespace PEParser
 {
@@ -24,12 +25,6 @@ namespace PEParser
             };
             return peFile;
         }
-
-        private static PEHeader ParsePEHeader(FileStream peStream)
-        {
-            throw new NotImplementedException();
-        }
-
         #endregion
 
         #region Private methods
@@ -184,9 +179,73 @@ namespace PEParser
             stream.Position = dosHeader.PEHeaderAddress;
             var peHeader = new PEHeader
             {
-
+                Magic = stream.ReadBytes(4).ToUtf8String().TrimNullEnd(),
+                Machine = (PEMachineType)stream.ReadUInt16L(),
+                NumberOfSections = stream.ReadUInt16L(),
+                TimeDateStamp = DateTimeOffset.FromUnixTimeSeconds(stream.ReadUInt32L()),
+                PointerToSymbolTable = stream.ReadUInt32L(),
+                NumberOfSymbols = stream.ReadUInt32L(),
+                SizeOfOptionalHeader = stream.ReadUInt16L(),
+                Characteristics = Utils.ParseEnumFlags<PECharacteristic>(stream.ReadUInt16L()),
             };
+            peHeader.OptionalHeader = ParseOptionalPEHeader(stream, peHeader.SizeOfOptionalHeader);
             return peHeader;
+        }
+
+        private static DataDirectory ParseDataDirectory(Stream stream)
+        {
+            var dataDir = new DataDirectory
+            {
+                VirtualAddress = stream.ReadUInt32L(),
+                Size = stream.ReadUInt32L(),
+            };
+            return dataDir;
+        }
+
+        private static PEOptionalHeader? ParseOptionalPEHeader(Stream stream, ushort headerSize)
+        {
+            if (headerSize == 0)
+            {
+                return null;
+            }
+            
+            var imageType = (PEImageType)stream.ReadUInt16L();
+            var is64Bit = imageType == PEImageType.PE32_PLUS;
+            var header = new PEOptionalHeader
+            {
+                ImageType = imageType,
+                MajorLinkerVersion = stream.ReadByteB(),
+                MinorLinkerVersion = stream.ReadByteB(),
+                SizeOfCode = stream.ReadUInt32L(),
+                SizeOfInitializedData = stream.ReadUInt32L(),
+                SizeOfUninitializedData = stream.ReadUInt32L(),
+                AddressOfEntryPoint = stream.ReadUInt32L(),
+                BaseOfCode = stream.ReadUInt32L(),
+                BaseOfData = is64Bit ? null : stream.ReadUInt32L(),
+                ImageBase = stream.ReadUInt64BitDependantL(is64Bit),
+                SectionAlignment = stream.ReadUInt32L(),
+                FileAlignment = stream.ReadUInt32L(),
+                MajorOperatingSystemVersion = stream.ReadUInt16L(),
+                MinorOperatingSystemVersion = stream.ReadUInt16L(),
+                MajorImageVersion = stream.ReadUInt16L(),
+                MinorImageVersion = stream.ReadUInt16L(),
+                MajorSubsystemVersion = stream.ReadUInt16L(),
+                MinorSubsystemVersion = stream.ReadUInt16L(),
+                Win32VersionValue = stream.ReadUInt32L(),
+                SizeOfImage = stream.ReadUInt32L(),
+                SizeOfHeaders = stream.ReadUInt32L(),
+                CheckSum = stream.ReadUInt32L(),
+                Subsystem = (PESubsystemType)stream.ReadUInt16L(),
+                DllCharacteristics = Utils.ParseEnumFlags<PEDllCharacteristics>(stream.ReadUInt16L()),
+                SizeOfStackReserve = stream.ReadUInt64BitDependantL(is64Bit),
+                SizeOfStackCommit = stream.ReadUInt64BitDependantL(is64Bit),
+                SizeOfHeapReserve = stream.ReadUInt64BitDependantL(is64Bit),
+                SizeOfHeapCommit = stream.ReadUInt64BitDependantL(is64Bit),
+                LoaderFlags = stream.ReadUInt32L(),
+                NumberOfRvaAndSizes = stream.ReadUInt32L(),
+            };
+            header.DataDirectory = stream.ParseArray(header.NumberOfRvaAndSizes / Constants.DATA_DIRECTORY_SIZE, ParseDataDirectory);
+            return header;
         }
         #endregion
     }

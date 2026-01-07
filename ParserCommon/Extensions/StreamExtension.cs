@@ -129,6 +129,13 @@ namespace ParserCommon.Extensions
             {
                 return stream.ReadBytes(8).AsUInt64B();
             }
+
+            public ulong ReadUInt64BitDependantL(bool is64Bit)
+            {
+                return is64Bit
+                    ? stream.ReadUInt64L()
+                    : stream.ReadUInt32L();
+            }
         }
         
         extension<T, TS, TC>(TS stream)

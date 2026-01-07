@@ -274,4 +274,354 @@ namespace PEParser
 		UTC1900_POGO_O_C = 0x010d,
 		UTC1900_POGO_O_CPP = 0x010e,
     }
+
+    public enum PEMachineType : ushort
+    {
+	    /// <summary>
+	    /// The content of this field is assumed to be applicable to any machine type
+	    /// </summary>
+	    UNKNOWN = 0x0,
+		/// <summary>
+		/// Alpha AXP, 32-bit address space
+		/// </summary>
+		ALPHA = 0x184,
+		/// <summary>
+		/// Alpha 64, 64-bit address space, or AXP 64
+		/// </summary>
+		ALPHA64_AXP64 = 0x284,
+		/// <summary>
+		/// Matsushita AM33
+		/// </summary>
+		AM33 = 0x1d3,
+		/// <summary>
+		/// x64
+		/// </summary>
+		AMD64 = 0x8664,
+		/// <summary>
+		/// ARM little endian
+		/// </summary>
+		ARM = 0x1c0,
+		/// <summary>
+		/// ARM64 little endian
+		/// </summary>
+		ARM64 = 0xaa64,
+		/// <summary>
+		/// ABI that enables interoperability between native ARM64 and emulated x64 code.
+		/// </summary>
+		ARM64EC = 0xA641,
+		/// <summary>
+		/// Binary format that allows both native ARM64 and ARM64EC code to coexist in the same file.
+		/// </summary>
+		ARM64X = 0xA64E,
+		/// <summary>
+		/// ARM Thumb-2 little endian
+		/// </summary>
+		ARMNT = 0x1c4,
+		/// <summary>
+		/// EFI byte code
+		/// </summary>
+		EBC = 0xebc,
+		/// <summary>
+		/// Intel 386 or later processors and compatible processors
+		/// </summary>
+		I386 = 0x14c,
+		/// <summary>
+		/// Intel Itanium processor family
+		/// </summary>
+		IA64 = 0x200,
+		/// <summary>
+		/// LoongArch 32-bit processor family
+		/// </summary>
+		LOONGARCH32 = 0x6232,
+		/// <summary>
+		/// LoongArch 64-bit processor family
+		/// </summary>
+		LOONGARCH64 = 0x6264,
+		/// <summary>
+		/// Mitsubishi M32R little endian
+		/// </summary>
+		M32R = 0x9041,
+		/// <summary>
+		/// MIPS16
+		/// </summary>
+		MIPS16 = 0x266,
+		/// <summary>
+		/// MIPS with FPU
+		/// </summary>
+		MIPSFPU = 0x366,
+		/// <summary>
+		/// MIPS16 with FPU
+		/// </summary>
+		MIPSFPU16 = 0x466,
+		/// <summary>
+		/// Power PC little endian
+		/// </summary>
+		POWERPC = 0x1f0,
+		/// <summary>
+		/// Power PC with floating point support
+		/// </summary>
+		POWERPCFP = 0x1f1,
+		/// <summary>
+		/// MIPS I compatible 32-bit big endian
+		/// </summary>
+		R3000BE = 0x160,
+		/// <summary>
+		/// MIPS I compatible 32-bit little endian
+		/// </summary>
+		R3000 = 0x162,
+		/// <summary>
+		/// MIPS III compatible 64-bit little endian
+		/// </summary>
+		R4000 = 0x166,
+		/// <summary>
+		/// MIPS IV compatible 64-bit little endian
+		/// </summary>
+		R10000 = 0x168,
+		/// <summary>
+		/// RISC-V 32-bit address space
+		/// </summary>
+		RISCV32 = 0x5032,
+		/// <summary>
+		/// RISC-V 64-bit address space
+		/// </summary>
+		RISCV64 = 0x5064,
+		/// <summary>
+		/// RISC-V 128-bit address space
+		/// </summary>
+		RISCV128 = 0x5128,
+		/// <summary>
+		/// Hitachi SH3
+		/// </summary>
+		SH3 = 0x1a2,
+		/// <summary>
+		/// Hitachi SH3 DSP
+		/// </summary>
+		SH3DSP = 0x1a3,
+		/// <summary>
+		/// Hitachi SH4
+		/// </summary>
+		SH4 = 0x1a6,
+		/// <summary>
+		/// Hitachi SH5
+		/// </summary>
+		SH5 = 0x1a8,
+		/// <summary>
+		/// Thumb
+		/// </summary>
+		THUMB = 0x1c2,
+		/// <summary>
+		/// MIPS little-endian WCE v2
+		/// </summary>
+		WCEMIPSV2 = 0x169,
+    }
+
+    [Flags]
+    public enum PECharacteristic : ushort
+    {
+	    /// <summary>
+	    /// Image only, Windows CE, and Microsoft Windows NT and later. This indicates that the file does not contain base relocations and must therefore be loaded at its preferred base address. If the base address is not available, the loader reports an error. The default behavior of the linker is to strip base relocations from executable (EXE) files.
+	    /// </summary>
+		RELOCS_STRIPPED = 0x0001,
+		/// <summary>
+		/// Image only. This indicates that the image file is valid and can be run. If this flag is not set, it indicates a linker error.
+		/// </summary>
+		EXECUTABLE_IMAGE = 0x0002,
+		/// <summary>
+		/// COFF line numbers have been removed. This flag is deprecated and should be zero.
+		/// </summary>
+		LINE_NUMS_STRIPPED = 0x0004,
+		/// <summary>
+		/// COFF symbol table entries for local symbols have been removed. This flag is deprecated and should be zero.
+		/// </summary>
+		LOCAL_SYMS_STRIPPED = 0x0008,
+		/// <summary>
+		/// Obsolete. Aggressively trim working set. This flag is deprecated for Windows 2000 and later and must be zero.
+		/// </summary>
+		AGGRESSIVE_WS_TRIM = 0x0010,
+		/// <summary>
+		/// Application can handle > 2-GB addresses.
+		/// </summary>
+		LARGE_ADDRESS_AWARE = 0x0020,
+		/// <summary>
+		/// This flag is reserved for future use.
+		/// </summary>
+		RESERVED = 0x0040,
+		/// <summary>
+		/// Little endian: the least significant bit (LSB) precedes the most significant bit (MSB) in memory. This flag is deprecated and should be zero.
+		/// </summary>
+		BYTES_REVERSED_LO = 0x0080,
+		/// <summary>
+		/// Machine is based on a 32-bit-word architecture.
+		/// </summary>
+		MACHINE_32BIT = 0x0100,
+		/// <summary>
+		/// Debugging information is removed from the image file.
+		/// </summary>
+		DEBUG_STRIPPED = 0x0200,
+		/// <summary>
+		/// If the image is on removable media, fully load it and copy it to the swap file.
+		/// </summary>
+		REMOVABLE_RUN_FROM_SWAP = 0x0400,
+		/// <summary>
+		/// If the image is on network media, fully load it and copy it to the swap file.
+		/// </summary>
+		NET_RUN_FROM_SWAP = 0x0800,
+		/// <summary>
+		/// The image file is a system file, not a user program.
+		/// </summary>
+		SYSTEM = 0x1000,
+		/// <summary>
+		/// The image file is a dynamic-link library (DLL). Such files are considered executable files for almost all purposes, although they cannot be directly run.
+		/// </summary>
+		DLL = 0x2000,
+		/// <summary>
+		/// The file should be run only on a uniprocessor machine.
+		/// </summary>
+		UP_SYSTEM_ONLY = 0x4000,
+		/// <summary>
+		/// Big endian: the MSB precedes the LSB in memory. This flag is deprecated and should be zero.
+		/// </summary>
+		BYTES_REVERSED_HI = 0x8000,
+    }
+
+    public enum PEImageType : ushort
+    {
+	    /// <summary>
+	    /// Identifies the image as a ROM image.
+	    /// </summary>
+	    ROM = 0x107,
+    	/// <summary>
+		/// Identifies the image as a PE32 executable.
+		/// </summary>
+		PE32 = 0x10B,
+    	/// <summary>
+		/// Identifies the image as a PE32+ executable.
+		/// </summary>
+		PE32_PLUS = 0x20B,
+    }
+
+    public enum PESubsystemType : ushort
+    {
+	    /// <summary>
+		/// An unknown subsystem
+		/// </summary>
+		UNKNOWN = 0,
+	    /// <summary>
+		/// Device drivers and native Windows processes
+		/// </summary>
+		NATIVE = 1,
+	    /// <summary>
+		/// The Windows graphical user interface (GUI) subsystem
+		/// </summary>
+		WINDOWS_GUI = 2,
+	    /// <summary>
+		/// The Windows character subsystem
+		/// </summary>
+		WINDOWS_CUI = 3,
+	    /// <summary>
+		/// The OS/2 character subsystem
+		/// </summary>
+		OS2_CUI = 5,
+	    /// <summary>
+		/// The Posix character subsystem
+		/// </summary>
+		POSIX_CUI = 7,
+	    /// <summary>
+		/// Native Win9x driver
+		/// </summary>
+		NATIVE_WINDOWS = 8,
+	    /// <summary>
+		/// Windows CE
+		/// </summary>
+		WINDOWS_CE_GUI = 9,
+	    /// <summary>
+		/// An Extensible Firmware Interface (EFI) application
+		/// </summary>
+		EFI_APPLICATION = 10,
+	    /// <summary>
+		/// An EFI driver with boot services
+		/// </summary>
+		EFI_BOOT_SERVICE_DRIVER = 11,
+	    /// <summary>
+		/// An EFI driver with run-time services
+		/// </summary>
+		EFI_RUNTIME_DRIVER = 12,
+	    /// <summary>
+		/// An EFI ROM image
+		/// </summary>
+		EFI_ROM = 13,
+	    /// <summary>
+		/// XBOX
+		/// </summary>
+		XBOX = 14,
+	    /// <summary>
+		/// Windows boot application.
+		/// </summary>
+		WINDOWS_BOOT_APPLICATION = 16,
+    }
+
+    [Flags]
+    public enum PEDllCharacteristics : ushort
+    {
+	    /// <summary>
+		/// Reserved, must be zero.
+		/// </summary>
+		RESERVED_1 = 0x0001,
+	    /// <summary>
+		/// Reserved, must be zero.
+		/// </summary>
+		RESERVED_2 = 0x0002,
+	    /// <summary>
+		/// Reserved, must be zero.
+		/// </summary>
+		RESERVED_3 = 0x0004,
+	    /// <summary>
+		/// Reserved, must be zero.
+		/// </summary>
+		RESERVED_4 = 0x0008,
+	    /// <summary>
+		/// Image can handle a high entropy 64-bit virtual address space.
+		/// </summary>
+		HIGH_ENTROPY_VA = 0x0020,
+	    /// <summary>
+		/// DLL can be relocated at load time.
+		/// </summary>
+		DYNAMIC_BASE = 0x0040,
+	    /// <summary>
+		/// Code Integrity checks are enforced.
+		/// </summary>
+	    FORCE_INTEGRITY = 0x0080,
+	    /// <summary>
+		/// Image is NX compatible.
+		/// </summary>
+		NX_COMPAT = 0x0100,
+	    /// <summary>
+		/// Isolation aware, but do not isolate the image.
+		/// </summary>
+		NO_ISOLATION = 0x0200,
+	    /// <summary>
+		/// Does not use structured exception (SE) handling. No SE handler may be called in this image.
+		/// </summary>
+		NO_SEH = 0x0400,
+	    /// <summary>
+		/// Do not bind the image.
+		/// </summary>
+		NO_BIND = 0x0800,
+	    /// <summary>
+		/// Image must execute in an AppContainer.
+		/// </summary>
+		APP_CONTAINER = 0x1000,
+	    /// <summary>
+		/// A WDM driver.
+		/// </summary>
+		WDM_DRIVER = 0x2000,
+	    /// <summary>
+		/// Image supports Control Flow Guard.
+		/// </summary>
+		GUARD_CF = 0x4000,
+	    /// <summary>
+		/// Terminal Server aware.
+		/// </summary>
+		TERMINAL_SERVER_AWARE = 0x8000,
+    }
 }
