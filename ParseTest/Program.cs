@@ -20,10 +20,13 @@
             // ELFInterpreter.RumFromEntrypoint(elfFile);
             
             var testPeFilePath = Path.Join(testProjectFolderPath, TEST_FILE_FOLDER_WIN, TEST_FILE_NAME + EXE_EXT);
-            var peFile = PEParser.PEParser.Parse(testPeFilePath);
+            var peRawFile = PEParser.PEParser.Parse(testPeFilePath);
+            var peFile = PEParser.PEParser.Resolve(peRawFile);
+            
             
             var testPeFilePath2 = Path.Join(testProjectFolderPath, TEST_FILE_FOLDER_WIN, TEST_FILE_NAME + DLL_EXT);
-            var peFile2 = PEParser.PEParser.Parse(testPeFilePath2);
+            var peRawFile2 = PEParser.PEParser.Parse(testPeFilePath2);
+            var peFile2 = PEParser.PEParser.Resolve(peRawFile2);
         }
     }
 }

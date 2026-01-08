@@ -2,30 +2,13 @@ using ParserCommon.Extensions;
 
 namespace PEParser
 {
-    public class DanData
-    {
-        public PEDOSProductType ProductType;
-        public string BuildName;
-        public ushort BuildMajorVersion;
-        public ushort BuildMinorVersion;
-        public uint UseCount;
-
-        public override string? ToString()
-        {
-            return $"Product: {ProductType}, Build: {BuildName} {BuildMajorVersion}.{BuildMinorVersion}, Use count: {UseCount}";
-        }
-    }
-    
-    public class RichHeader
-    {
-        public string RichMagic;
-        public string DanMagic;
-        public DanData[] DanDatas;
-    }
-    
-    public class PEDOSHeader
+    public class PEDOSHeaderRaw
     {
         public string Magic;
+        public ushort ByteCountOnLastPage;
+        public ushort PageCount;
+        public ushort RelocationCount;
+        public ushort HeaderSizeInParagraphs;
         public ushort MinExtraParagraphs;
         public ushort MaxExtraParagraphs;
         public ushort SsValue;
@@ -33,34 +16,26 @@ namespace PEParser
         public ushort Checksum;
         public ushort IpValue;
         public ushort CsValue;
+        public ushort RelocationTableAddress;
         public ushort OverlayNumber;
+        public ushort[] Reserved;
         public ushort OemId;
         public ushort OemInfo;
-        public PEDOSRelocation[] Relocations;
+        public ushort[] Reserved2;
+        public uint PEHeaderAddress;
+        public PEDOSRelocationRaw[] Relocations;
         public byte[] DOSProgramBytes;
         public string DOSProgramStr => DOSProgramBytes.ToUtf8String();
         public RichHeader? RichHeader;
     }
 
-    public class PEDOSRelocation
+    public class PEDOSRelocationRaw
     {
         public ushort Offset;
         public ushort Segment;
     }
 
-    public class PEDataDirectory
-    {
-        public PEDataDirectoryType Type;
-        public uint MemoryAddressOffset;
-        public uint Size;
-
-        public override string? ToString()
-        {
-            return $"{Type} Address: {MemoryAddressOffset}, Size: {Size}";
-        }
-    }
-
-    public class PEOptionalHeader
+    public class PEOptionalHeaderRaw
     {
         public PEImageType ImageType;
         public bool Is64Bit => ImageType == PEImageType.PE32_PLUS;
@@ -81,6 +56,9 @@ namespace PEParser
         public ushort ImageMinorVersion;
         public ushort SubsystemMajorVersion;
         public ushort SubsystemMinorVersion;
+        public uint Win32VersionValue;
+        public uint ImageSize;
+        public uint HeadersSize;
         public uint CheckSum;
         public PESubsystemType Subsystem;
         public PEDllFlag[] DllFlags;
@@ -88,6 +66,8 @@ namespace PEParser
         public ulong StackCommitSize;
         public ulong HeapReserveSize;
         public ulong HeapCommitSize;
+        public uint LoaderFlags;
+        public uint DataDirectoryCount;
         public PEDataDirectory[] DataDirectories;
 
         public override string? ToString()
@@ -96,15 +76,17 @@ namespace PEParser
         }
     }
 
-    public class PEHeader
+    public class PEHeaderRaw
     {
         public string Magic;
         public PEMachineType Machine;
+        public ushort SectionCount;
         public DateTime CreatedTime;
         public uint SymbolTableAddress;
         public uint SymbolCount;
+        public ushort OptionalHeaderSize;
         public PEFlag[] Flags;
-        public PEOptionalHeader? OptionalHeader;
+        public PEOptionalHeaderRaw? OptionalHeader;
 
         public override string? ToString()
         {
@@ -112,13 +94,31 @@ namespace PEParser
         }
     }
 
-    public class PESectionHeader
+    #region Section data classes
+    public class PEImportDirectoryTable
+    {
+        public uint ImportLookupTableAddress;
+        public uint DateTimeStamp;
+        public uint FirstForwarderReferenceIndex;
+        public uint NameAddress;
+        public uint ImportAddressTableAddress;
+    }
+    #endregion
+
+    public class PESectionHeaderRaw
     {
         public string Name;
         public uint SectionMemorySize;
         public uint SectionMemoryAddress;
+        public uint SectionSize;
+        public uint SectionAddress;
+        public uint RelocationsAddress;
+        public uint COFFLineNumbersAddress;
+        public ushort RelocationCount;
+        public ushort COFFLineNumberCount;
         public PESectionFlag[] Flags;
-        public object Data;
+        public byte[] Data;
+        public string DataStr => Data.ToUtf8String();
 
         public override string? ToString()
         {
@@ -126,10 +126,10 @@ namespace PEParser
         }
     }
     
-    public class PEFile
+    public class PEFileRaw
     {
-        public PEDOSHeader DOSHeader;
-        public PEHeader PEHeader;
-        public PESectionHeader[] SectionHeaders;
+        public PEDOSHeaderRaw DOSHeader;
+        public PEHeaderRaw PEHeader;
+        public PESectionHeaderRaw[] SectionHeaders;
     }
 }

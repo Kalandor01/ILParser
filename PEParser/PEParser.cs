@@ -6,7 +6,7 @@ namespace PEParser
     public static class PEParser
     {
         #region Public methods
-        public static object Parse(string filePath)
+        public static PEFileRaw Parse(string filePath)
         {
             if (
                 !Path.Exists(filePath) ||
@@ -17,20 +17,37 @@ namespace PEParser
             }
 
             var peStream = File.OpenRead(filePath);
+            
             var dosHeader = ParseDOSHeader(peStream);
-            var peFile = new PEFile
+            var peHeader = ParsePEHeader(peStream, dosHeader);
+            var sectionHeaders = peStream.ParseArray(peHeader.SectionCount, ParseSectionHeader);
+            
+            var peFile = new PEFileRaw
             {
                 DOSHeader = dosHeader,
-                PEHeader = ParsePEHeader(peStream, dosHeader),
+                PEHeader = peHeader,
+                SectionHeaders = sectionHeaders,
+            };
+            return peFile;
+        }
+
+        public static PEFile Resolve(PEFileRaw rawFile)
+        {
+            var peFile = new PEFile
+            {
+                DOSHeader = ResolveDOSHeader(rawFile.DOSHeader),
+                PEHeader = ResolvePEHeader(rawFile.PEHeader),
+                SectionHeaders = rawFile.SectionHeaders.Select(ResolveSectionHeader).ToArray(),
             };
             return peFile;
         }
         #endregion
 
         #region Private methods
-        private static PEDOSHeader ParseDOSHeader(Stream stream)
+        #region Stream parsing
+        private static PEDOSHeaderRaw ParseDOSHeader(Stream stream)
         {
-            var header = new PEDOSHeader
+            var header = new PEDOSHeaderRaw
             {
                 Magic = stream.ReadBytes(2).ToUtf8String(),
                 ByteCountOnLastPage = stream.ReadUInt16L(),
@@ -63,9 +80,9 @@ namespace PEParser
             return header;
         }
 
-        private static PEDOSRelocation ParseDOSRelocation(Stream stream)
+        private static PEDOSRelocationRaw ParseDOSRelocation(Stream stream)
         {
-            var relocation = new PEDOSRelocation()
+            var relocation = new PEDOSRelocationRaw()
             {
                 Offset = stream.ReadUInt16L(),
                 Segment = stream.ReadUInt16L(),
@@ -73,7 +90,7 @@ namespace PEParser
             return relocation;
         }
 
-        private static byte[] ParseDOSProgram(Stream stream, PEDOSHeader dosHeader)
+        private static byte[] ParseDOSProgram(Stream stream, PEDOSHeaderRaw dosHeader)
         {
             var programStart = dosHeader.RelocationTableAddress + Constants.DOS_RELOCATION_SIZE * dosHeader.RelocationCount;
             return dosHeader.PEHeaderAddress > programStart
@@ -174,35 +191,36 @@ namespace PEParser
             return richHeader;
         }
 
-        private static PEHeader ParsePEHeader(Stream stream, PEDOSHeader dosHeader)
+        private static PEHeaderRaw ParsePEHeader(Stream stream, PEDOSHeaderRaw dosHeader)
         {
             stream.Position = dosHeader.PEHeaderAddress;
-            var peHeader = new PEHeader
+            var peHeader = new PEHeaderRaw
             {
                 Magic = stream.ReadBytes(4).ToUtf8String().TrimNullEnd(),
                 Machine = (PEMachineType)stream.ReadUInt16L(),
-                NumberOfSections = stream.ReadUInt16L(),
-                TimeDateStamp = DateTimeOffset.FromUnixTimeSeconds(stream.ReadUInt32L()),
-                PointerToSymbolTable = stream.ReadUInt32L(),
-                NumberOfSymbols = stream.ReadUInt32L(),
-                SizeOfOptionalHeader = stream.ReadUInt16L(),
-                Characteristics = Utils.ParseEnumFlags<PECharacteristic>(stream.ReadUInt16L()),
+                SectionCount = stream.ReadUInt16L(),
+                CreatedTime = DateTimeOffset.FromUnixTimeSeconds(stream.ReadUInt32L()).DateTime,
+                SymbolTableAddress = stream.ReadUInt32L(),
+                SymbolCount = stream.ReadUInt32L(),
+                OptionalHeaderSize = stream.ReadUInt16L(),
+                Flags = Utils.ParseEnumFlags<PEFlag>(stream.ReadUInt16L()),
             };
-            peHeader.OptionalHeader = ParseOptionalPEHeader(stream, peHeader.SizeOfOptionalHeader);
+            peHeader.OptionalHeader = ParseOptionalPEHeader(stream, peHeader.OptionalHeaderSize);
             return peHeader;
         }
 
-        private static DataDirectory ParseDataDirectory(Stream stream)
+        private static PEDataDirectory ParseDataDirectory(Stream stream, int directoryIndex)
         {
-            var dataDir = new DataDirectory
+            var dataDir = new PEDataDirectory
             {
-                VirtualAddress = stream.ReadUInt32L(),
+                Type = (PEDataDirectoryType)directoryIndex,
+                MemoryAddressOffset = stream.ReadUInt32L(),
                 Size = stream.ReadUInt32L(),
             };
             return dataDir;
         }
 
-        private static PEOptionalHeader? ParseOptionalPEHeader(Stream stream, ushort headerSize)
+        private static PEOptionalHeaderRaw? ParseOptionalPEHeader(Stream stream, ushort headerSize)
         {
             if (headerSize == 0)
             {
@@ -211,42 +229,213 @@ namespace PEParser
             
             var imageType = (PEImageType)stream.ReadUInt16L();
             var is64Bit = imageType == PEImageType.PE32_PLUS;
-            var header = new PEOptionalHeader
+            var header = new PEOptionalHeaderRaw
             {
                 ImageType = imageType,
-                MajorLinkerVersion = stream.ReadByteB(),
-                MinorLinkerVersion = stream.ReadByteB(),
-                SizeOfCode = stream.ReadUInt32L(),
-                SizeOfInitializedData = stream.ReadUInt32L(),
-                SizeOfUninitializedData = stream.ReadUInt32L(),
-                AddressOfEntryPoint = stream.ReadUInt32L(),
-                BaseOfCode = stream.ReadUInt32L(),
-                BaseOfData = is64Bit ? null : stream.ReadUInt32L(),
-                ImageBase = stream.ReadUInt64BitDependantL(is64Bit),
+                LinkerMajorVersion = stream.ReadByteB(),
+                LinkerMinorVersion = stream.ReadByteB(),
+                TextSectionSize = stream.ReadUInt32L(),
+                DataSectionsSize = stream.ReadUInt32L(),
+                UninitializedDataSectionsSize = stream.ReadUInt32L(),
+                EntryPointAddress = stream.ReadUInt32L(),
+                TextSectionMemoryAddress = stream.ReadUInt32L(),
+                DataSectionMemoryAddress = is64Bit ? null : stream.ReadUInt32L(),
+                ImageBaseMemoryAddress = stream.ReadUInt64BitDependantL(is64Bit),
+                SectionMemoryAlignment = stream.ReadUInt32L(),
                 SectionAlignment = stream.ReadUInt32L(),
-                FileAlignment = stream.ReadUInt32L(),
-                MajorOperatingSystemVersion = stream.ReadUInt16L(),
-                MinorOperatingSystemVersion = stream.ReadUInt16L(),
-                MajorImageVersion = stream.ReadUInt16L(),
-                MinorImageVersion = stream.ReadUInt16L(),
-                MajorSubsystemVersion = stream.ReadUInt16L(),
-                MinorSubsystemVersion = stream.ReadUInt16L(),
+                OSMajorVersion = stream.ReadUInt16L(),
+                OSMinorVersion = stream.ReadUInt16L(),
+                ImageMajorVersion = stream.ReadUInt16L(),
+                ImageMinorVersion = stream.ReadUInt16L(),
+                SubsystemMajorVersion = stream.ReadUInt16L(),
+                SubsystemMinorVersion = stream.ReadUInt16L(),
                 Win32VersionValue = stream.ReadUInt32L(),
-                SizeOfImage = stream.ReadUInt32L(),
-                SizeOfHeaders = stream.ReadUInt32L(),
+                ImageSize = stream.ReadUInt32L(),
+                HeadersSize = stream.ReadUInt32L(),
                 CheckSum = stream.ReadUInt32L(),
                 Subsystem = (PESubsystemType)stream.ReadUInt16L(),
-                DllCharacteristics = Utils.ParseEnumFlags<PEDllCharacteristics>(stream.ReadUInt16L()),
-                SizeOfStackReserve = stream.ReadUInt64BitDependantL(is64Bit),
-                SizeOfStackCommit = stream.ReadUInt64BitDependantL(is64Bit),
-                SizeOfHeapReserve = stream.ReadUInt64BitDependantL(is64Bit),
-                SizeOfHeapCommit = stream.ReadUInt64BitDependantL(is64Bit),
+                DllFlags = Utils.ParseEnumFlags<PEDllFlag>(stream.ReadUInt16L()),
+                StackReserveSize = stream.ReadUInt64BitDependantL(is64Bit),
+                StackCommitSize = stream.ReadUInt64BitDependantL(is64Bit),
+                HeapReserveSize = stream.ReadUInt64BitDependantL(is64Bit),
+                HeapCommitSize = stream.ReadUInt64BitDependantL(is64Bit),
                 LoaderFlags = stream.ReadUInt32L(),
-                NumberOfRvaAndSizes = stream.ReadUInt32L(),
+                DataDirectoryCount = stream.ReadUInt32L(),
             };
-            header.DataDirectory = stream.ParseArray(header.NumberOfRvaAndSizes / Constants.DATA_DIRECTORY_SIZE, ParseDataDirectory);
+
+            var dataDirectories = new List<PEDataDirectory>();
+            for (var x = 0; x < header.DataDirectoryCount; x++)
+            {
+                dataDirectories.Add(ParseDataDirectory(stream, x));
+            }
+            header.DataDirectories = dataDirectories.ToArray();
             return header;
         }
+
+        private static PESectionHeaderRaw ParseSectionHeader(FileStream stream)
+        {
+            var sectionHeader = new PESectionHeaderRaw
+            {
+                Name = stream.ReadBytes(8).ToUtf8String().TrimNullEnd(),
+                SectionMemorySize = stream.ReadUInt32L(),
+                SectionMemoryAddress = stream.ReadUInt32L(),
+                SectionSize = stream.ReadUInt32L(),
+                SectionAddress = stream.ReadUInt32L(),
+                RelocationsAddress = stream.ReadUInt32L(),
+                COFFLineNumbersAddress = stream.ReadUInt32L(),
+                RelocationCount = stream.ReadUInt16L(),
+                COFFLineNumberCount = stream.ReadUInt16L(),
+                Flags = Utils.ParseEnumFlags<PESectionFlag>(stream.ReadUInt32L()),
+            };
+            sectionHeader.Data = stream.ReadBytes(sectionHeader.SectionSize, sectionHeader.SectionAddress);
+            
+            if (sectionHeader.RelocationsAddress != 0 || sectionHeader.COFFLineNumbersAddress != 0)
+            {
+                throw new ArgumentException("Relocation table or COFF line number table parsing is not implemented!");
+            }
+            return sectionHeader;
+        }
+        #endregion
+
+        #region Raw resolving
+        private static PEDOSRelocation ResolveDOSRelocation(PEDOSRelocationRaw rawRelocation)
+        {
+            var relocation = new PEDOSRelocation()
+            {
+                Offset = rawRelocation.Offset,
+                Segment = rawRelocation.Segment,
+            };
+            return relocation;
+        }
+        
+        private static PEDOSHeader ResolveDOSHeader(PEDOSHeaderRaw rawHeader)
+        {
+            var header = new PEDOSHeader
+            {
+                Magic = rawHeader.Magic,
+                MinExtraParagraphs = rawHeader.MinExtraParagraphs,
+                MaxExtraParagraphs = rawHeader.MaxExtraParagraphs,
+                SsValue = rawHeader.SsValue,
+                SpValue = rawHeader.SpValue,
+                Checksum = rawHeader.Checksum,
+                IpValue = rawHeader.IpValue,
+                CsValue = rawHeader.CsValue,
+                OverlayNumber = rawHeader.OverlayNumber,
+                OemId = rawHeader.OemId,
+                OemInfo = rawHeader.OemInfo,
+                Relocations = rawHeader.Relocations.Select(ResolveDOSRelocation).ToArray(),
+                DOSProgramBytes = rawHeader.DOSProgramBytes,
+                RichHeader = rawHeader.RichHeader,
+            };
+            return header;
+        }
+
+        private static PEOptionalHeader? ResolveOptionalPEHeader(PEOptionalHeaderRaw? rawHeader)
+        {
+            if (rawHeader is null)
+            {
+                return null;
+            }
+            
+            var header = new PEOptionalHeader
+            {
+                ImageType = rawHeader.ImageType,
+                LinkerMajorVersion = rawHeader.LinkerMajorVersion,
+                LinkerMinorVersion = rawHeader.LinkerMinorVersion,
+                TextSectionSize = rawHeader.TextSectionSize,
+                DataSectionsSize = rawHeader.DataSectionsSize,
+                UninitializedDataSectionsSize = rawHeader.UninitializedDataSectionsSize,
+                EntryPointAddress = rawHeader.EntryPointAddress,
+                TextSectionMemoryAddress = rawHeader.TextSectionMemoryAddress,
+                DataSectionMemoryAddress = rawHeader.DataSectionMemoryAddress,
+                ImageBaseMemoryAddress = rawHeader.ImageBaseMemoryAddress,
+                SectionMemoryAlignment = rawHeader.SectionMemoryAlignment,
+                SectionAlignment = rawHeader.SectionAlignment,
+                OSMajorVersion = rawHeader.OSMajorVersion,
+                OSMinorVersion = rawHeader.OSMinorVersion,
+                ImageMajorVersion = rawHeader.ImageMajorVersion,
+                ImageMinorVersion = rawHeader.ImageMinorVersion,
+                SubsystemMajorVersion = rawHeader.SubsystemMajorVersion,
+                SubsystemMinorVersion = rawHeader.SubsystemMinorVersion,
+                CheckSum = rawHeader.CheckSum,
+                Subsystem = rawHeader.Subsystem,
+                DllFlags = rawHeader.DllFlags,
+                StackReserveSize = rawHeader.StackReserveSize,
+                StackCommitSize = rawHeader.StackCommitSize,
+                HeapReserveSize = rawHeader.HeapReserveSize,
+                HeapCommitSize = rawHeader.HeapCommitSize,
+                DataDirectories = rawHeader.DataDirectories.Where(dd => dd.Size != 0).ToArray(),
+            };
+            return header;
+        }
+
+        private static PEHeader ResolvePEHeader(PEHeaderRaw rawHeader)
+        {
+            var header = new PEHeader
+            {
+                Magic = rawHeader.Magic,
+                Machine = rawHeader.Machine,
+                CreatedTime = rawHeader.CreatedTime,
+                SymbolTableAddress = rawHeader.SymbolTableAddress,
+                SymbolCount = rawHeader.SymbolCount,
+                Flags = rawHeader.Flags,
+                OptionalHeader = ResolveOptionalPEHeader(rawHeader.OptionalHeader),
+            };
+            return header;
+        }
+
+        #region Resolve section data
+        private static PEImportDirectoryTable[] ResolveImportDataSection(Stream stream)
+        {
+            var tables = new List<PEImportDirectoryTable>();
+            
+            PEImportDirectoryTable table;
+            do
+            {
+                table = new PEImportDirectoryTable
+                {
+                    ImportLookupTableAddress = stream.ReadUInt32L(),
+                    DateTimeStamp = stream.ReadUInt32L(),
+                    FirstForwarderReferenceIndex = stream.ReadUInt32L(),
+                    NameAddress = stream.ReadUInt32L(),
+                    ImportAddressTableAddress = stream.ReadUInt32L(),
+                };
+                tables.Add(table);
+            } while (table.NameAddress != 0);
+            return tables.ToArray();
+        }
+        #endregion
+
+        private static object ResolveSectionData(string name, byte[] data)
+        {
+            var str = data.ToUtf8String();
+            var stream = new MemoryStream(data);
+            return name switch
+            {
+                // Constants.SectionName.TEXT => ,
+                // Constants.SectionName.DATA => ,
+                // Constants.SectionName.RDATA => ,
+                // Constants.SectionName.PDATA => ,
+                Constants.SectionName.IDATA => ResolveImportDataSection(stream),
+                // Constants.SectionName.RELOC => ,
+                // Constants.SectionName.RSRC => ,
+                _ => data,
+            };
+        }
+
+        private static PESectionHeader ResolveSectionHeader(PESectionHeaderRaw rawHeader)
+        {
+            var header = new PESectionHeader
+            {
+                Name = rawHeader.Name,
+                SectionMemorySize = rawHeader.SectionMemorySize,
+                SectionMemoryAddress = rawHeader.SectionMemoryAddress,
+                Flags = rawHeader.Flags,
+                Data = ResolveSectionData(rawHeader.Name, rawHeader.Data),
+            };
+            return header;
+        }
+        #endregion
         #endregion
     }
 }
