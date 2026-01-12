@@ -12,13 +12,17 @@ namespace PEParser
         public const int RICH_HEADER_MIN_LENGTH = 32;
         public const int DAN_DATA_SIZE = 8;
         public const string PE_MAGIC = "PE";
+        public const ulong LOOKUP_TABLE_TYPE_MASK_32 = 0x80000000;
+        public const ulong LOOKUP_TABLE_TYPE_MASK_64 = 0x8000000000000000;
+        public const ushort SECTION_RELOCATION_FIELDS_UPPER_MASK = 0xFFFF;
+        public const ushort SECTION_RELOCATION_FIELDS_LOWER_MASK = 0xFFFF;
         
         public class SectionName
         {
             /// <summary>
             /// Contains the executable code of the program.
             /// </summary>
-            public const string TEXT = ".text";
+            public const string INSTRUCTIONS = ".text";
             /// <summary>
             /// Contains the initialized data.
             /// </summary>
@@ -26,35 +30,35 @@ namespace PEParser
             /// <summary>
             /// Contains read-only initialized data.
             /// </summary>
-            public const string RDATA = ".rdata";
+            public const string READ_ONLY_DATA = ".rdata";
             /// <summary>
-            /// 
+            /// Contains platform specific data data.
             /// </summary>
-            public const string PDATA = ".pdata";
+            public const string PLATFORM_SPEC_DATA = ".pdata";
             /// <summary>
             /// Contains the import tables.
             /// </summary>
-            public const string IDATA = ".idata";
+            public const string IMPORT_DATA = ".idata";
             /// <summary>
             /// Contains the export tables.
             /// </summary>
-            public const string EDATA = ".edata";
+            public const string EXPORT_DATA = ".edata";
             /// <summary>
             /// Contains image relocation information.
             /// </summary>
-            public const string RELOC = ".reloc";
+            public const string RELOCATION_INFO = ".reloc";
             /// <summary>
             /// Contains resources used by the program, these include images, icons or even embedded binaries.
             /// </summary>
-            public const string RSRC = ".rsrc";
+            public const string RESOURCES = ".rsrc";
             /// <summary>
             /// Contains uninitialized data.
             /// </summary>
-            public const string BSS = ".bss";
+            public const string UNINITIALIZED_DATA = ".bss";
             /// <summary>
             /// (Thread Local Storage), provides storage for every executing thread of the program.
             /// </summary>
-            public const string TLS = ".tls";
+            public const string THREAD_LOCAL_STORAGE = ".tls";
         }
     }
 }

@@ -24,6 +24,21 @@ namespace ParserCommon.Extensions
                 return Convert.ToHexString(bytes);
             }
             
+            public string GetNullTerminatedString(uint startIndex)
+            {
+                var x = startIndex;
+                while (bytes.Length > x && bytes[x] != 0)
+                {
+                    x++;
+                }
+                return bytes[(int)startIndex..(int)x].ToUtf8String();
+            }
+            
+            public string GetNullTerminatedString()
+            {
+                return bytes.GetNullTerminatedString(0);
+            }
+            
             public ushort AsUInt16L()
             {
                 return BinaryPrimitives.ReadUInt16LittleEndian(bytes);
@@ -42,6 +57,11 @@ namespace ParserCommon.Extensions
             public uint AsUInt32B()
             {
                 return BinaryPrimitives.ReadUInt32BigEndian(bytes);
+            }
+            
+            public int AsInt32L()
+            {
+                return BinaryPrimitives.ReadInt32LittleEndian(bytes);
             }
 
             public ulong AsUInt64L()

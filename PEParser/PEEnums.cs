@@ -630,31 +630,31 @@ namespace PEParser
 		/// <summary>
 		/// Export Directory
 		/// </summary>
-		EXPORT = 0,
+		EXPORT_DIRECTORY = 0,
 		/// <summary>
 		/// Import Directory
 		/// </summary>
-		IMPORT = 1,
+		IMPORT_DIRECTORY = 1,
 		/// <summary>
 		/// Resource Directory
 		/// </summary>
-		RESOURCE = 2,
+		RESOURCE_DIRECTORY = 2,
 		/// <summary>
 		/// Exception Directory
 		/// </summary>
-		EXCEPTION = 3,
+		EXCEPTION_DIRECTORY = 3,
 		/// <summary>
 		/// Security Directory
 		/// </summary>
-		SECURITY = 4,
+		SECURITY_DIRECTORY = 4,
 		/// <summary>
 		/// Base Relocation Table
 		/// </summary>
-		BASE_RELOC = 5,
+		BASE_RELOCATION_TABLE = 5,
 		/// <summary>
 		/// Debug Directory
 		/// </summary>
-		DEBUG = 6,
+		DEBUG_DIRECTORY = 6,
 		/// <summary>
 		/// Architecture Specific Data<br/>
 		/// X86 usage: copyright
@@ -671,11 +671,11 @@ namespace PEParser
 		/// <summary>
 		/// Load Configuration Directory
 		/// </summary>
-		LOAD_CONFIG = 10,
+		LOAD_CONFIG_DIRECTORY = 10,
 		/// <summary>
 		/// Bound Import Directory in headers
 		/// </summary>
-		BOUND_IMPORT = 11,
+		BOUND_IMPORT_DIRECTORY = 11,
 		/// <summary>
 		/// Import Address Table
 		/// </summary>
@@ -683,7 +683,7 @@ namespace PEParser
 		/// <summary>
 		/// Delay Load Import Descriptors
 		/// </summary>
-		DELAY_IMPORT = 13,
+		DELAY_IMPORT_DESCRIPTORS = 13,
 		/// <summary>
 		/// COM Runtime descriptor / .NET header
 		/// </summary>

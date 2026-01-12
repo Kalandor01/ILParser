@@ -34,6 +34,18 @@ namespace PEParser
         public ushort Offset;
         public ushort Segment;
     }
+    
+    public class PEDataDirectoryRaw
+    {
+        public PEDataDirectoryType Type;
+        public uint RVA;
+        public uint Size;
+        
+        public override string? ToString()
+        {
+            return $"{Type} Address: {RVA}, Size: {Size}";
+        }
+    }
 
     public class PEOptionalHeaderRaw
     {
@@ -44,9 +56,9 @@ namespace PEParser
         public uint TextSectionSize;
         public uint DataSectionsSize;
         public uint UninitializedDataSectionsSize;
-        public uint EntryPointAddress;
-        public uint TextSectionMemoryAddress;
-        public uint? DataSectionMemoryAddress;
+        public uint EntryPointRVA;
+        public uint TextSectionRVA;
+        public uint? DataSectionRVA;
         public ulong ImageBaseMemoryAddress;
         public uint SectionMemoryAlignment;
         public uint SectionAlignment;
@@ -68,7 +80,7 @@ namespace PEParser
         public ulong HeapCommitSize;
         public uint LoaderFlags;
         public uint DataDirectoryCount;
-        public PEDataDirectory[] DataDirectories;
+        public PEDataDirectoryRaw[] DataDirectories;
 
         public override string? ToString()
         {
@@ -93,17 +105,13 @@ namespace PEParser
             return $"{Machine} ({string.Join(", ", Flags)}) {CreatedTime}";
         }
     }
-
-    #region Section data classes
-    public class PEImportDirectoryTable
+    
+    public class PESectionRelocationRaw
     {
-        public uint ImportLookupTableAddress;
-        public uint DateTimeStamp;
-        public uint FirstForwarderReferenceIndex;
-        public uint NameAddress;
-        public uint ImportAddressTableAddress;
+        public uint PageRVA;
+        public uint BlockSize;
+        public PERelocationFixup[] Fixups;
     }
-    #endregion
 
     public class PESectionHeaderRaw
     {
@@ -118,6 +126,7 @@ namespace PEParser
         public ushort COFFLineNumberCount;
         public PESectionFlag[] Flags;
         public byte[] Data;
+        public PESectionRelocationRaw[] Relocations;
         public string DataStr => Data.ToUtf8String();
 
         public override string? ToString()
@@ -126,10 +135,47 @@ namespace PEParser
         }
     }
     
+    public class PESymbolRaw
+    {
+        
+    }
+    
+    public class PECLIHeaderRaw
+    {
+        public uint HeaderSize;
+        public ushort RuntimeVersionMajor;
+        public ushort RuntimeVersionMinor;
+        /// <summary>
+        /// RVA and size of the physical metadata.
+        /// </summary>
+        public ulong MetaData;
+        public uint Flags;
+        /// <summary>
+        /// Token for the MethodDef or File of the entry point for the image
+        /// </summary>
+        public uint EntryPointToken;
+        /// <summary>
+        /// RVA and size of implementation-specific resources.
+        /// </summary>
+        public ulong Resources;
+        /// <summary>
+        /// RVA of the hash data for this PE file used by the CLI loader for binding and versioning
+        /// </summary>
+        public ulong StrongNameSignature;
+        public ulong CodeManagerTable;
+        /// <summary>
+        /// RVA of an array of locations in the file that contain an array of function pointers (e.g., vtable slots), see below.
+        /// </summary>
+        public ulong VTableFixups;
+        public ulong ExportAddressTableJumps;
+        public ulong ManagedNativeHeader;
+    }
+    
     public class PEFileRaw
     {
         public PEDOSHeaderRaw DOSHeader;
         public PEHeaderRaw PEHeader;
         public PESectionHeaderRaw[] SectionHeaders;
+        public PESymbolRaw[] Symbols;
     }
 }

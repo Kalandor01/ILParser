@@ -119,6 +119,11 @@ namespace ParserCommon.Extensions
             {
                 return stream.ReadBytes(4).AsUInt32B();
             }
+            
+            public int ReadInt32L()
+            {
+                return stream.ReadBytes(4).AsInt32L();
+            }
 
             public ulong ReadUInt64L()
             {
